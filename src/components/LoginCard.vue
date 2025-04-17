@@ -1,6 +1,13 @@
 <template>
-  <div class="d-flex align-center justify-center" style="height: 100vh;">
-    <v-card class="mx-auto" width="400" >
+  <div class="relative grid h-screen place-content-center">
+    <InteractiveGridPattern
+      :class="'[mask-image:radial-gradient(350px_circle_at_center,white,transparent)]'"
+      :width="20"
+      :height="20"
+      :squares="[80, 80]"
+      squares-class-name="hover:fill-blue-500"
+    />
+    <v-card class="mx-auto relative z-10" width="400">
       <v-card-title class="text-center">登录</v-card-title>
       
       <v-card-text>
@@ -67,6 +74,7 @@
 import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
+import  InteractiveGridPattern  from '@/components/style/InteractiveGridPattern.vue'
 
 const username = ref('')
 const password = ref('')
@@ -109,4 +117,64 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.relative {
+  position: relative;
+  background: linear-gradient(to bottom right, #f0f4ff, #e6f0ff);
+  overflow: hidden;
+}
+
+.grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(350px circle at center, white, transparent);
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 20px;
+  }
+}
+
+.v-card {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.v-card-title {
+  font-size: 24px;
+  font-weight: 600;
+  padding: 24px 0;
+  color: #1a237e;
+}
+
+.v-card-text {
+  padding: 0 24px 24px;
+}
+
+.v-text-field {
+  margin-bottom: 16px;
+}
+
+.v-btn {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.v-card-actions {
+  padding: 16px 24px;
+}
+</style> 
