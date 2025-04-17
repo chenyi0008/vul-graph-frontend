@@ -1,38 +1,28 @@
 <template>
-  <div class="software-container">
+  <div class="system-container">
     <v-card elevation="2">
       <v-card-title class="text-h6 font-weight-medium d-flex justify-space-between align-center">
-        软件信息列表
+        系统节点列表
         <v-btn
           color="primary"
           @click="showCreateDialog"
         >
-          添加软件
+          添加系统节点
         </v-btn>
       </v-card-title>
       <v-data-table
-        :headers="softwareHeaders"
-        :items="softwareList"
+        :headers="systemHeaders"
+        :items="systemList"
         :items-per-page="5"
         :loading="loading"
         class="elevation-1"
       >
-        <template v-slot:item.affectedVersions="{ item }">
-          <v-chip
-            v-for="version in item.affectedVersions"
-            :key="version"
-            size="small"
-            class="ma-1"
-          >
-            {{ version }}
-          </v-chip>
-        </template>
         <template v-slot:item.actions="{ item }">
           <v-btn
             size="small"
             variant="text"
             color="primary"
-            @click="showSoftwareDetails(item)"
+            @click="showSystemDetails(item)"
           >
             详情
           </v-btn>
@@ -56,11 +46,11 @@
       </v-data-table>
     </v-card>
 
-    <!-- 软件详情对话框 -->
-    <v-dialog v-model="softwareDialog" max-width="800">
+    <!-- 系统节点详情对话框 -->
+    <v-dialog v-model="systemDialog" max-width="800">
       <v-card>
         <v-card-title class="text-h5">
-          {{ selectedSoftware?.name }} 详情
+          {{ selectedSystem?.systemName }} 详情
         </v-card-title>
         <v-card-text>
           <v-row>
@@ -70,42 +60,22 @@
                   <template v-slot:prepend>
                     <v-icon color="primary">mdi-application</v-icon>
                   </template>
-                  <v-list-item-title>软件名称</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedSoftware?.name }}</v-list-item-subtitle>
+                  <v-list-item-title>系统名称</v-list-item-title>
+                  <v-list-item-subtitle>{{ selectedSystem?.systemName }}</v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item>
+                  <template v-slot:prepend>
+                    <v-icon color="primary">mdi-shield-star</v-icon>
+                  </template>
+                  <v-list-item-title>等级</v-list-item-title>
+                  <v-list-item-subtitle>{{ selectedSystem?.level }}</v-list-item-subtitle>
                 </v-list-item>
                 <v-list-item>
                   <template v-slot:prepend>
                     <v-icon color="primary">mdi-factory</v-icon>
                   </template>
                   <v-list-item-title>厂商</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedSoftware?.vendor }}</v-list-item-subtitle>
-                </v-list-item>
-                <v-list-item>
-                  <template v-slot:prepend>
-                    <v-icon color="primary">mdi-tag</v-icon>
-                  </template>
-                  <v-list-item-title>类型</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedSoftware?.type }}</v-list-item-subtitle>
-                </v-list-item>
-              </v-list>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-list>
-                <v-list-item>
-                  <template v-slot:prepend>
-                    <v-icon color="primary">mdi-alert-circle</v-icon>
-                  </template>
-                  <v-list-item-title>受影响版本</v-list-item-title>
-                  <v-list-item-subtitle>
-                    <v-chip
-                      v-for="version in selectedSoftware?.affectedVersions"
-                      :key="version"
-                      size="small"
-                      class="ma-1"
-                    >
-                      {{ version }}
-                    </v-chip>
-                  </v-list-item-subtitle>
+                  <v-list-item-subtitle>{{ selectedSystem?.vendor }}</v-list-item-subtitle>
                 </v-list-item>
               </v-list>
             </v-col>
@@ -113,51 +83,41 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" variant="text" @click="softwareDialog = false">
+          <v-btn color="primary" variant="text" @click="systemDialog = false">
             关闭
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- 创建软件对话框 -->
+    <!-- 创建系统节点对话框 -->
     <v-dialog v-model="createDialog" max-width="800">
       <v-card>
         <v-card-title class="text-h5">
-          添加软件信息
+          添加系统节点
         </v-card-title>
         <v-card-text>
           <v-form v-model="valid" @submit.prevent="handleCreate">
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="newSoftware.name"
-                  label="软件名称"
-                  :rules="[v => !!v || '请输入软件名称']"
+                  v-model="newSystem.systemName"
+                  label="系统名称"
+                  :rules="[v => !!v || '请输入系统名称']"
                   required
                 ></v-text-field>
                 <v-text-field
-                  v-model="newSoftware.vendor"
+                  v-model="newSystem.level"
+                  label="等级"
+                  :rules="[v => !!v || '请输入等级']"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="newSystem.vendor"
                   label="厂商"
                   :rules="[v => !!v || '请输入厂商']"
                   required
                 ></v-text-field>
-                <v-text-field
-                  v-model="newSoftware.type"
-                  label="类型"
-                  :rules="[v => !!v || '请输入类型']"
-                  required
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-combobox
-                  v-model="newSoftware.affectedVersions"
-                  label="受影响版本"
-                  multiple
-                  chips
-                  :rules="[v => v.length > 0 || '请至少输入一个版本']"
-                  required
-                ></v-combobox>
               </v-col>
             </v-row>
             <v-card-actions>
@@ -183,45 +143,34 @@
       </v-card>
     </v-dialog>
 
-    <!-- 编辑软件对话框 -->
+    <!-- 编辑系统节点对话框 -->
     <v-dialog v-model="editDialog" max-width="800">
       <v-card>
         <v-card-title class="text-h5">
-          编辑软件信息
+          编辑系统节点
         </v-card-title>
         <v-card-text>
           <v-form v-model="editValid" @submit.prevent="handleEdit">
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="editSoftware.name"
-                  label="软件名称"
-                  :rules="[v => !!v || '请输入软件名称']"
+                  v-model="editSystem.systemName"
+                  label="系统名称"
+                  :rules="[v => !!v || '请输入系统名称']"
                   required
-                  readonly
                 ></v-text-field>
                 <v-text-field
-                  v-model="editSoftware.vendor"
+                  v-model="editSystem.level"
+                  label="等级"
+                  :rules="[v => !!v || '请输入等级']"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="editSystem.vendor"
                   label="厂商"
                   :rules="[v => !!v || '请输入厂商']"
                   required
                 ></v-text-field>
-                <v-text-field
-                  v-model="editSoftware.type"
-                  label="类型"
-                  :rules="[v => !!v || '请输入类型']"
-                  required
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-combobox
-                  v-model="editSoftware.affectedVersions"
-                  label="受影响版本"
-                  multiple
-                  chips
-                  :rules="[v => v.length > 0 || '请至少输入一个版本']"
-                  required
-                ></v-combobox>
               </v-col>
             </v-row>
             <v-card-actions>
@@ -254,7 +203,7 @@
           确认删除
         </v-card-title>
         <v-card-text>
-          确定要删除 {{ deleteSoftwareName }} 吗？此操作不可恢复。
+          确定要删除 {{ deleteSystemName }} 吗？此操作不可恢复。
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -281,22 +230,21 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getSoftwareList, createSoftware, updateSoftware, deleteSoftware, getSoftwareById } from '@/api/software'
-import type { SoftwareItem } from '@/api/software'
+import { getSystemList, createSystem, updateSystem, deleteSystem } from '@/api/system'
+import type { SystemNode } from '@/api/system'
 
-// 软件信息数据
-const softwareHeaders = ref([
-  { title: '软件名称', key: 'name', sortable: true },
+// 系统节点数据
+const systemHeaders = ref([
+  { title: '系统名称', key: 'systemName', sortable: true },
+  { title: '等级', key: 'level', sortable: true },
   { title: '厂商', key: 'vendor', sortable: true },
-  { title: '类型', key: 'type', sortable: true },
-  { title: '受影响版本', key: 'affectedVersions', sortable: false },
   { title: '操作', key: 'actions', sortable: false },
 ])
 
-const softwareList = ref<SoftwareItem[]>([])
+const systemList = ref<SystemNode[]>([])
 const loading = ref(false)
-const softwareDialog = ref(false)
-const selectedSoftware = ref<SoftwareItem | null>(null)
+const systemDialog = ref(false)
+const selectedSystem = ref<SystemNode | null>(null)
 const createDialog = ref(false)
 const valid = ref(false)
 const creating = ref(false)
@@ -304,32 +252,30 @@ const editDialog = ref(false)
 const editValid = ref(false)
 const editing = ref(false)
 const deleteDialog = ref(false)
-const deleteSoftwareName = ref('')
-const deleteSoftwareId = ref('')
+const deleteSystemName = ref('')
 const deleting = ref(false)
+const deleteSystemId = ref('')
 
-// 新软件表单数据
-const newSoftware = ref<SoftwareItem>({
-    id: '',
-  name: '',
-  vendor: '',
-  type: '',
-  affectedVersions: []
+// 新系统节点表单数据
+const newSystem = ref<SystemNode>({
+  id: null,
+  systemName: '',
+  level: '',
+  vendor: ''
 })
 
-// 编辑软件表单数据
-const editSoftware = ref<SoftwareItem>({
-    id: '',
-  name: '',
-  vendor: '',
-  type: '',
-  affectedVersions: []
+// 编辑系统节点表单数据
+const editSystem = ref<SystemNode>({
+  id: null,
+  systemName: '',
+  level: '',
+  vendor: ''
 })
 
-// 显示软件详情
-const showSoftwareDetails = (software: SoftwareItem) => {
-  selectedSoftware.value = software
-  softwareDialog.value = true
+// 显示系统节点详情
+const showSystemDetails = (system: SystemNode) => {
+  selectedSystem.value = system
+  systemDialog.value = true
 }
 
 // 显示创建对话框
@@ -338,70 +284,60 @@ const showCreateDialog = () => {
 }
 
 // 显示编辑对话框
-const showEditDialog = async (software: SoftwareItem) => {
-  try {
-    loading.value = true
-    const response = await getSoftwareById(software.id)
-    if (response.code === 1) {
-      editSoftware.value = { ...response.data }
-      editDialog.value = true
-    }
-  } catch (error) {
-    console.error('获取软件详情失败:', error)
-  } finally {
-    loading.value = false
-  }
+const showEditDialog = (system: SystemNode) => {
+  editSystem.value = { ...system }
+  editDialog.value = true
 }
 
-// 创建软件
+// 创建系统节点
 const handleCreate = async () => {
   if (!valid.value) return
   
   try {
     creating.value = true
-    const response = await createSoftware(newSoftware.value)
+    const response = await createSystem(newSystem.value)
     if (response.code === 1) {
       // 创建成功后刷新列表
-      await fetchSoftwareList()
+      await fetchSystemList()
       createDialog.value = false
       // 重置表单
-      newSoftware.value = {
-        name: '',
-        vendor: '',
-        type: '',
-        affectedVersions: []
+      newSystem.value = {
+        id: null,
+        systemName: '',
+        level: '',
+        vendor: ''
       }
     }
   } catch (error) {
-    console.error('创建软件失败:', error)
+    console.error('创建系统节点失败:', error)
   } finally {
     creating.value = false
   }
 }
 
-// 编辑软件
+// 编辑系统节点
 const handleEdit = async () => {
   if (!editValid.value) return
   
   try {
     editing.value = true
-    const response = await updateSoftware(editSoftware.value)
+    const response = await updateSystem(editSystem.value)
     if (response.code === 1) {
       // 编辑成功后刷新列表
-      await fetchSoftwareList()
+      await fetchSystemList()
       editDialog.value = false
     }
   } catch (error) {
-    console.error('编辑软件失败:', error)
+    console.error('编辑系统节点失败:', error)
   } finally {
     editing.value = false
   }
 }
 
 // 显示删除确认对话框
-const handleDelete = (software: SoftwareItem) => {
-  deleteSoftwareName.value = software.name
-  deleteSoftwareId.value = software.id || ''
+const handleDelete = (system: SystemNode) => {
+  deleteSystemName.value = system.systemName
+  deleteSystemId.value = system.id || ''
   deleteDialog.value = true
 }
 
@@ -409,27 +345,27 @@ const handleDelete = (software: SoftwareItem) => {
 const confirmDelete = async () => {
   try {
     deleting.value = true
-    const response = await deleteSoftware(deleteSoftwareId.value)
+    const response = await deleteSystem(deleteSystemId.value)
     if (response.code === 1) {
       // 删除成功后刷新列表
-      await fetchSoftwareList()
+      await fetchSystemList()
       deleteDialog.value = false
     }
   } catch (error) {
-    console.error('删除软件失败:', error)
+    console.error('删除系统节点失败:', error)
   } finally {
     deleting.value = false
   }
 }
 
-// 获取软件列表
-const fetchSoftwareList = async () => {
+// 获取系统节点列表
+const fetchSystemList = async () => {
   try {
     loading.value = true
-    const response = await getSoftwareList()
-    softwareList.value = response.data
+    const response = await getSystemList()
+    systemList.value = response.data
   } catch (error) {
-    console.error('获取软件列表失败:', error)
+    console.error('获取系统节点列表失败:', error)
   } finally {
     loading.value = false
   }
@@ -437,12 +373,12 @@ const fetchSoftwareList = async () => {
 
 // 组件挂载时获取数据
 onMounted(() => {
-  fetchSoftwareList()
+  fetchSystemList()
 })
 </script>
 
 <style scoped>
-.software-container {
+.system-container {
   max-width: 1200px;
   margin: 0 auto;
 }

@@ -2,6 +2,7 @@ import request from '@/utils/request'
 import type { BaseResponse } from './types'
 
 export interface SoftwareItem {
+  id: string
   name: string
   vendor: string
   type: string
@@ -17,8 +18,8 @@ export const getSoftwareList = () => {
   return request.get<SoftwareResponse>('/software')
 }
 
-export const getSoftwareByName = (name: string) => {
-  return request.get<BaseResponse<SoftwareItem>>(`/software/${name}`)
+export const getSoftwareById = (id: string) => {
+  return request.get<BaseResponse<SoftwareItem>>(`/software/${id}`)
 }
 
 export const createSoftware = (software: SoftwareItem) => {
@@ -29,6 +30,6 @@ export const updateSoftware = (software: SoftwareItem) => {
   return request.put<UpdateSoftwareResponse>('/software', software)
 }
 
-export const deleteSoftware = (name: string) => {
-  return request.delete<DeleteSoftwareResponse>(`/software/${name}`)
+export const deleteSoftware = (id: string) => {
+  return request.delete<DeleteSoftwareResponse>(`/software/${id}`)
 } 

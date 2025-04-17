@@ -60,7 +60,7 @@
         <VulnerabilitiesView v-if="currentView === 'vulnerabilities'" />
         <CveView v-if="currentView === 'cve'" />
         <SoftwareView v-if="currentView === 'software'" />
-        <ScansView v-if="currentView === 'scans'" />
+        <SystemNodeView v-if="currentView === 'system'" />
         <SettingsView v-if="currentView === 'settings'" />
       </v-container>
     </v-main>
@@ -75,32 +75,35 @@ import avatar from '@/assets/20250416222128.jpg'
 import DashboardView from '@/components/system/DashboardView.vue'
 import VulnerabilitiesView from '@/components/system/VulnerabilitiesView.vue'
 import CveView from '@/components/system/CveView.vue'
-import ScansView from '@/components/system/ScansView.vue'
 import SettingsView from '@/components/system/SettingsView.vue'
 import SoftwareView from '@/components/system/SoftwareView.vue'
+import SystemNodeView from '@/components/system/SystemNodeView.vue'
 
-const drawer = ref(true)
-const rail = ref(false)
-const currentView = ref('cve')
+const drawer = ref<boolean>(true)
+const rail = ref<boolean>(false)
+const currentView = ref<string>('cve')
 const userStore = useUserStore()
 const router = useRouter()
 
-// 菜单项
-const menuItems = [
+interface MenuItem {
+  title: string
+  icon: string
+  value: string
+}
+
+const menuItems = ref<MenuItem[]>([
   { title: 'CVE漏洞', icon: 'mdi-shield-alert', value: 'cve' },
   { title: '软件信息', icon: 'mdi-application', value: 'software' },
+  { title: '系统节点', icon: 'mdi-server', value: 'system' },
   { title: '仪表盘', icon: 'mdi-view-dashboard', value: 'dashboard' },
   { title: '漏洞列表', icon: 'mdi-bug', value: 'vulnerabilities' },
-  { title: '扫描任务', icon: 'mdi-scan', value: 'scans' },
   { title: '系统设置', icon: 'mdi-cog', value: 'settings' },
-]
+])
 
-// 菜单点击处理
-const handleMenuClick = (item: any) => {
+const handleMenuClick = (item: MenuItem) => {
   currentView.value = item.value
 }
 
-// 退出登录
 const handleLogout = () => {
   userStore.logout()
   router.push('/login')

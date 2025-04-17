@@ -39,4 +39,8 @@ export const updateCve = (cve: CveItem): Promise<UpdateCveResponse> => {
 
 export const deleteCve = (cveId: string): Promise<DeleteCveResponse> => {
   return request.delete<DeleteCveResponse>(`/cve/${cveId}`)
+}
+
+export const bindSoftware = (cveId: string, softwareId: string) => {
+  return request.post<BaseResponse<null>>(`/cve/bind-software?cveId=${cveId}&softwareId=${softwareId}`)
 } 

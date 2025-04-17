@@ -38,6 +38,14 @@
           <v-btn
             size="small"
             variant="text"
+            color="success"
+            @click="showBindDialog(item)"
+          >
+            绑定软件
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
             color="error"
             @click="handleDelete(item)"
           >
@@ -84,6 +92,27 @@
                   </template>
                   <v-list-item-title>影响范围</v-list-item-title>
                   <v-list-item-subtitle>{{ selectedCve?.affectedScope }}</v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item v-if="selectedCve?.software">
+                  <template v-slot:prepend>
+                    <v-icon color="primary">mdi-application</v-icon>
+                  </template>
+                  <v-list-item-title>已绑定软件</v-list-item-title>
+                  <v-list-item-subtitle>
+                    <div>名称: {{ selectedCve.software.name }}</div>
+                    <div>厂商: {{ selectedCve.software.vendor }}</div>
+                    <div>类型: {{ selectedCve.software.type }}</div>
+                    <div>受影响版本: 
+                      <v-chip
+                        v-for="version in selectedCve.software.affectedVersions"
+                        :key="version"
+                        size="small"
+                        class="ma-1"
+                      >
+                        {{ version }}
+                      </v-chip>
+                    </div>
+                  </v-list-item-subtitle>
                 </v-list-item>
               </v-list>
             </v-col>
@@ -346,14 +375,53 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 绑定软件对话框 -->
+    <v-dialog v-model="bindDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5">
+          绑定软件
+        </v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="selectedSoftwareId"
+            :items="softwareList"
+            item-title="name"
+            item-value="id"
+            label="选择软件"
+            :rules="[v => !!v || '请选择软件']"
+            required
+          ></v-select>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="bindDialog = false"
+          >
+            取消
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="handleBindSoftware"
+          >
+            绑定
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getCveList, createCve, updateCve, getCveById, deleteCve } from '@/api/cve'
+import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware } from '@/api/cve'
 import type { CveItem } from '@/api/cve'
 import { useUserStore } from '@/stores/user'
+import { getSoftwareList } from '@/api/software'
+import type { SoftwareItem } from '@/api/software'
 
 const userStore = useUserStore()
 
@@ -412,6 +480,12 @@ const editCve = ref<CveItem>({
   solution: '',
   publishTime: new Date().toISOString()
 })
+
+// 软件列表
+const softwareList = ref<SoftwareItem[]>([])
+const bindDialog = ref(false)
+const selectedCveForBind = ref<CveItem | null>(null)
+const selectedSoftwareId = ref('')
 
 // 根据CVSS评分获取颜色
 const getCvssColor = (score: number) => {
@@ -537,9 +611,44 @@ const fetchCveList = async () => {
   }
 }
 
+// 显示绑定软件对话框
+const showBindDialog = (cve: CveItem) => {
+  selectedCveForBind.value = cve
+  bindDialog.value = true
+}
+
+// 绑定软件
+const handleBindSoftware = async () => {
+  if (!selectedCveForBind.value || !selectedSoftwareId.value) return
+  
+  try {
+    const response = await bindSoftware(selectedCveForBind.value.cveId, selectedSoftwareId.value)
+    if (response.code === 1) {
+      // 绑定成功后刷新列表
+      await fetchCveList()
+      bindDialog.value = false
+      selectedCveForBind.value = null
+      selectedSoftwareId.value = ''
+    }
+  } catch (error) {
+    console.error('绑定软件失败:', error)
+  }
+}
+
+// 获取软件列表
+const fetchSoftwareList = async () => {
+  try {
+    const response = await getSoftwareList()
+    softwareList.value = response.data
+  } catch (error) {
+    console.error('获取软件列表失败:', error)
+  }
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchCveList()
+  fetchSoftwareList()
 })
 </script>
 
