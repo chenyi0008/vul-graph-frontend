@@ -5,8 +5,8 @@
       :rail="rail"
       permanent
       @click="rail = false"
-      width="280"
-      class="bg-grey-lighten-4"
+      width="200"
+      class="bg-grey-lighten-5 rounded-sm"
     >
       <v-list-item
         :prepend-avatar="avatar"
@@ -34,7 +34,7 @@
           :value="item.value"
           @click="handleMenuClick(item)"
           :active="currentView === item.value"
-          rounded="xl"
+          rounded="3"
           class="mb-1"
         ></v-list-item>
       </v-list>
@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
 import avatar from '@/assets/20250416222128.jpg'
@@ -84,6 +84,27 @@ const rail = ref<boolean>(false)
 const currentView = ref<string>('cve')
 const userStore = useUserStore()
 const router = useRouter()
+
+// 添加窗口宽度监听
+const checkWindowWidth = () => {
+  if (window.innerWidth < 960) {
+    drawer.value = false
+    rail.value = false
+  } else {
+    drawer.value = true
+  }
+}
+
+// 组件挂载时添加监听
+onMounted(() => {
+  checkWindowWidth()
+  window.addEventListener('resize', checkWindowWidth)
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  window.removeEventListener('resize', checkWindowWidth)
+})
 
 interface MenuItem {
   title: string
@@ -102,6 +123,10 @@ const menuItems = ref<MenuItem[]>([
 
 const handleMenuClick = (item: MenuItem) => {
   currentView.value = item.value
+  // 在小屏幕时点击菜单项后自动收起菜单
+  if (window.innerWidth < 960) {
+    drawer.value = false
+  }
 }
 
 const handleLogout = () => {
