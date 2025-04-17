@@ -198,7 +198,6 @@
                   label="软件名称"
                   :rules="[v => !!v || '请输入软件名称']"
                   required
-                  readonly
                 ></v-text-field>
                 <v-text-field
                   v-model="editSoftware.vendor"
