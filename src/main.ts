@@ -7,8 +7,7 @@ import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
-import Toast from "vue-toastification"
-import "vue-toastification/dist/index.css"
+import Notifications from '@kyvg/vue3-notification'
 import router from './router'
 
 const vuetify = createVuetify({
@@ -17,9 +16,9 @@ const vuetify = createVuetify({
 })
 
 const app = createApp(App)
-app.use(Toast)
-app.use(createPinia())
 app.use(vuetify)
 app.use(router)
+app.use(createPinia())
+app.use(Notifications)
 
 app.mount('#app')

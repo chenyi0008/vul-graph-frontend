@@ -46,6 +46,14 @@
           <v-btn
             size="small"
             variant="text"
+            color="info"
+            @click="showBindSystemDialog(item)"
+          >
+            绑定系统
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
             color="error"
             @click="handleDelete(item)"
           >
@@ -112,6 +120,17 @@
                         {{ version }}
                       </v-chip>
                     </div>
+                  </v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item v-if="selectedCve?.system">
+                  <template v-slot:prepend>
+                    <v-icon color="primary">mdi-server</v-icon>
+                  </template>
+                  <v-list-item-title>已绑定系统节点</v-list-item-title>
+                  <v-list-item-subtitle>
+                    <div>系统名称: {{ selectedCve.system.systemName }}</div>
+                    <div>等级: {{ selectedCve.system.level }}</div>
+                    <div>厂商: {{ selectedCve.system.vendor }}</div>
                   </v-list-item-subtitle>
                 </v-list-item>
               </v-list>
@@ -412,16 +431,55 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 绑定系统节点对话框 -->
+    <v-dialog v-model="bindSystemDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5">
+          绑定系统节点
+        </v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="selectedSystemId"
+            :items="systemList"
+            item-title="systemName"
+            item-value="id"
+            label="选择系统节点"
+            :rules="[v => !!v || '请选择系统节点']"
+            required
+          ></v-select>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="bindSystemDialog = false"
+          >
+            取消
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="handleBindSystem"
+          >
+            绑定
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware } from '@/api/cve'
+import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem } from '@/api/cve'
 import type { CveItem } from '@/api/cve'
 import { useUserStore } from '@/stores/user'
 import { getSoftwareList } from '@/api/software'
 import type { SoftwareItem } from '@/api/software'
+import { getSystemList } from '@/api/system'
+import type { SystemNode } from '@/api/system'
 
 const userStore = useUserStore()
 
@@ -486,6 +544,12 @@ const softwareList = ref<SoftwareItem[]>([])
 const bindDialog = ref(false)
 const selectedCveForBind = ref<CveItem | null>(null)
 const selectedSoftwareId = ref('')
+
+// 系统节点列表
+const systemList = ref<SystemNode[]>([])
+const bindSystemDialog = ref(false)
+const selectedCveForSystemBind = ref<CveItem | null>(null)
+const selectedSystemId = ref('')
 
 // 根据CVSS评分获取颜色
 const getCvssColor = (score: number) => {
@@ -645,10 +709,45 @@ const fetchSoftwareList = async () => {
   }
 }
 
+// 显示绑定系统节点对话框
+const showBindSystemDialog = (cve: CveItem) => {
+  selectedCveForSystemBind.value = cve
+  bindSystemDialog.value = true
+}
+
+// 绑定系统节点
+const handleBindSystem = async () => {
+  if (!selectedCveForSystemBind.value || !selectedSystemId.value) return
+  
+  try {
+    const response = await bindSystem(selectedCveForSystemBind.value.cveId, selectedSystemId.value)
+    if (response.code === 1) {
+      // 绑定成功后刷新列表
+      await fetchCveList()
+      bindSystemDialog.value = false
+      selectedCveForSystemBind.value = null
+      selectedSystemId.value = ''
+    }
+  } catch (error) {
+    console.error('绑定系统节点失败:', error)
+  }
+}
+
+// 获取系统节点列表
+const fetchSystemList = async () => {
+  try {
+    const response = await getSystemList()
+    systemList.value = response.data
+  } catch (error) {
+    console.error('获取系统节点列表失败:', error)
+  }
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchCveList()
   fetchSoftwareList()
+  fetchSystemList()
 })
 </script>
 
