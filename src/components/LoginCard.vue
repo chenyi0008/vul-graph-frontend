@@ -1,6 +1,8 @@
 <template>
   <div class="d-flex align-center justify-center" style="height: 100vh;">
     <v-card class="mx-auto" width="400" >
+
+
       <v-card-title class="text-center">登录</v-card-title>
       
       <v-card-text>

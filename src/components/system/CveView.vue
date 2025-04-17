@@ -1,67 +1,99 @@
 <template>
   <div class="cve-container">
-    <v-card elevation="2">
-      <v-card-title class="text-h6 font-weight-medium d-flex justify-space-between align-center">
-        CVE漏洞列表
-        <v-btn
-          color="primary"
-          @click="showCreateDialog"
-        >
-          添加CVE
-        </v-btn>
-      </v-card-title>
-      <v-data-table
-        :headers="cveHeaders"
-        :items="cveList"
-        :items-per-page="5"
-        :loading="loading"
-        class="elevation-1"
-      >
+    <v-row>
+      <!-- 左侧图形区域 -->
+      <v-col cols="12" md="4" class="graph-column">
+        <v-card elevation="2" class="graph-card">
+          <v-card-title class="text-h6 font-weight-medium">
+            CVE关系图
+          </v-card-title>
+          <v-card-text class="graph-container">
+            <CveGraph 
+              v-show="selectedCveForGraph" 
+              :key="selectedCveForGraph?.cveId"
+              :cveId="selectedCveForGraph?.cveId || ''" 
+            />
+            <div v-show="!selectedCveForGraph" class="no-selection">
+              <v-icon size="64" color="grey">mdi-graph</v-icon>
+              <p class="text-h6 mt-4">请选择一个CVE查看关系图</p>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
 
-        <template v-slot:item.actions="{ item }">
-          <v-btn
-            size="small"
-            variant="text"
-            color="primary"
-            @click="showCveDetails(item)"
+      <!-- 右侧CVE列表 -->
+      <v-col cols="12" md="8">
+        <v-card elevation="2">
+          <v-card-title class="text-h6 font-weight-medium d-flex justify-space-between align-center">
+            CVE漏洞列表
+            <v-btn
+              color="primary"
+              @click="showCreateDialog"
+            >
+              添加CVE
+            </v-btn>
+          </v-card-title>
+          <v-data-table
+            :headers="cveHeaders"
+            :items="cveList"
+            :items-per-page="5"
+            :loading="loading"
+            class="elevation-1"
           >
-            详情
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            color="warning"
-            @click="showEditDialog(item)"
-          >
-            编辑
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            color="success"
-            @click="showBindDialog(item)"
-          >
-            绑定软件
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            color="info"
-            @click="showBindSystemDialog(item)"
-          >
-            绑定系统
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            color="error"
-            @click="handleDelete(item)"
-          >
-            删除
-          </v-btn>
-        </template>
-      </v-data-table>
-    </v-card>
+            <template v-slot:item.actions="{ item }">
+            <v-btn
+                size="small"
+                variant="text"
+                color="primary"
+                @click="handleRowClick(item)"
+              >
+                查看关系
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="primary"
+                @click="showCveDetails(item)"
+              >
+                详情
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="warning"
+                @click="showEditDialog(item)"
+              >
+                编辑
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="success"
+                @click="showBindDialog(item)"
+              >
+                绑定软件
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="info"
+                @click="showBindSystemDialog(item)"
+              >
+                绑定系统
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                @click="handleDelete(item)"
+              >
+                删除
+              </v-btn>
+            </template>
+          </v-data-table>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- CVE详情对话框 -->
     <v-dialog v-model="cveDialog" max-width="800">
@@ -549,9 +581,19 @@ import type { SoftwareItem } from '@/api/software'
 import { getSystemList } from '@/api/system'
 import type { SystemNode } from '@/api/system'
 import { useNotification } from '@kyvg/vue3-notification'
+import CveGraph from '@/components/neo4j/CveGraph.vue'
 
 const notification = useNotification()
 const userStore = useUserStore()
+
+// 选中的CVE用于显示图形
+const selectedCveForGraph = ref<CveItem | null>(null)
+
+// 处理表格行点击
+const handleRowClick = (item: any) => {
+  console.log('选中CVE:', item.cveId)
+  selectedCveForGraph.value = item as CveItem
+}
 
 // CVE漏洞数据
 const cveHeaders = ref([
@@ -957,8 +999,33 @@ onMounted(() => {
 
 <style scoped>
 .cve-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+}
+
+.graph-column {
+  height: 80vh;
+}
+
+.graph-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9e9e9e;
 }
 
 .v-card {

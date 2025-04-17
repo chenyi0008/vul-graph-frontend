@@ -61,7 +61,7 @@
         <CveView v-if="currentView === 'cve'" />
         <SoftwareView v-if="currentView === 'software'" />
         <SystemNodeView v-if="currentView === 'system'" />
-        <SettingsView v-if="currentView === 'settings'" />
+        <GraphView v-if="currentView === 'graph'" />
       </v-container>
     </v-main>
   </v-app>
@@ -75,7 +75,7 @@ import avatar from '@/assets/20250416222128.jpg'
 import DashboardView from '@/components/system/DashboardView.vue'
 import VulnerabilitiesView from '@/components/system/VulnerabilitiesView.vue'
 import CveView from '@/components/system/CveView.vue'
-import SettingsView from '@/components/system/SettingsView.vue'
+import GraphView from '@/components/system/GraphView.vue'
 import SoftwareView from '@/components/system/SoftwareView.vue'
 import SystemNodeView from '@/components/system/SystemNodeView.vue'
 
@@ -116,9 +116,10 @@ const menuItems = ref<MenuItem[]>([
   { title: 'CVE漏洞', icon: 'mdi-shield-alert', value: 'cve' },
   { title: '软件信息', icon: 'mdi-application', value: 'software' },
   { title: '系统节点', icon: 'mdi-server', value: 'system' },
-  { title: '仪表盘', icon: 'mdi-view-dashboard', value: 'dashboard' },
-  { title: '漏洞列表', icon: 'mdi-bug', value: 'vulnerabilities' },
-  { title: '系统设置', icon: 'mdi-cog', value: 'settings' },
+  { title: '知识图谱', icon: 'mdi-cog', value: 'graph' },
+  // { title: '仪表盘', icon: 'mdi-view-dashboard', value: 'dashboard' },
+  // { title: '漏洞列表', icon: 'mdi-bug', value: 'vulnerabilities' },
+
 ])
 
 const handleMenuClick = (item: MenuItem) => {
