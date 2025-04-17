@@ -14,6 +14,20 @@ export interface CveItem {
   impact: string
   solution: string
   publishTime: string
+  softwareList: {
+    id: string
+    name: string
+    vendor: string
+    type: string
+    affectedVersions: string[]
+  }[]
+  systemList: {
+    id: string
+    systemName: string
+    level: string
+    vendor: string
+  }[]
+  severity: number
 }
 
 export interface CveResponse extends BaseResponse<CveItem[]> {}
@@ -41,10 +55,18 @@ export const deleteCve = (cveId: string): Promise<DeleteCveResponse> => {
   return request.delete<DeleteCveResponse>(`/cve/${cveId}`)
 }
 
-export const bindSoftware = (cveId: string, softwareId: string) => {
-  return request.post<BaseResponse<null>>(`/cve/bind-software?cveId=${cveId}&softwareId=${softwareId}`)
-}
+export const bindSoftware = (cveId: string, softwareIdList: string[]) => {
+  const searchParams = new URLSearchParams();
+  searchParams.append('cveId', cveId);
+  softwareIdList.forEach(id => searchParams.append('softwareId', id));
 
-export const bindSystem = (cveId: string, systemId: string) => {
-  return request.post<BaseResponse<null>>(`/cve/bind-system?cveId=${cveId}&systemId=${systemId}`)
-} 
+  return request.post<BaseResponse<null>>(`/cve/bind-software?${searchParams.toString()}`);
+};
+
+export const bindSystem = (cveId: string, systemIdList: string[]) => {
+  const searchParams = new URLSearchParams();
+  searchParams.append('cveId', cveId);
+  systemIdList.forEach(id => searchParams.append('systemId', id));
+
+  return request.post<BaseResponse<null>>(`/cve/bind-system?${searchParams.toString()}`);
+};

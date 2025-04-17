@@ -396,21 +396,55 @@
     </v-dialog>
 
     <!-- 绑定软件对话框 -->
-    <v-dialog v-model="bindDialog" max-width="500">
+    <v-dialog v-model="bindDialog" max-width="800">
       <v-card>
         <v-card-title class="text-h5">
           绑定软件
         </v-card-title>
         <v-card-text>
-          <v-select
-            v-model="selectedSoftwareId"
-            :items="softwareList"
-            item-title="name"
-            item-value="id"
-            label="选择软件"
-            :rules="[v => !!v || '请选择软件']"
-            required
-          ></v-select>
+          <v-row>
+            <!-- 未绑定的软件列表 -->
+            <v-col cols="6">
+              <v-card class="pa-4" height="400">
+                <v-card-title>未绑定软件</v-card-title>
+                <v-list>
+                  <v-list-item
+                    v-for="software in unboundSoftware"
+                    :key="software.id"
+                    @click="moveToBound(software)"
+                    class="cursor-pointer"
+                  >
+                    <v-list-item-title>{{ software.name }}</v-list-item-title>
+                    <v-list-item-subtitle>{{ software.vendor }}</v-list-item-subtitle>
+                    <template v-slot:append>
+                      <v-icon>mdi-arrow-right</v-icon>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+
+            <!-- 已绑定的软件列表 -->
+            <v-col cols="6">
+              <v-card class="pa-4" height="400">
+                <v-card-title>已绑定软件</v-card-title>
+                <v-list>
+                  <v-list-item
+                    v-for="software in boundSoftware"
+                    :key="software.id"
+                    @click="moveToUnbound(software)"
+                    class="cursor-pointer"
+                  >
+                    <v-list-item-title>{{ software.name }}</v-list-item-title>
+                    <v-list-item-subtitle>{{ software.vendor }}</v-list-item-subtitle>
+                    <template v-slot:append>
+                      <v-icon>mdi-arrow-left</v-icon>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -426,28 +460,62 @@
             variant="text"
             @click="handleBindSoftware"
           >
-            绑定
+            保存
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- 绑定系统节点对话框 -->
-    <v-dialog v-model="bindSystemDialog" max-width="500">
+    <v-dialog v-model="bindSystemDialog" max-width="800">
       <v-card>
         <v-card-title class="text-h5">
           绑定系统节点
         </v-card-title>
         <v-card-text>
-          <v-select
-            v-model="selectedSystemId"
-            :items="systemList"
-            item-title="systemName"
-            item-value="id"
-            label="选择系统节点"
-            :rules="[v => !!v || '请选择系统节点']"
-            required
-          ></v-select>
+          <v-row>
+            <!-- 未绑定的系统节点列表 -->
+            <v-col cols="6">
+              <v-card class="pa-4" height="400">
+                <v-card-title>未绑定系统节点</v-card-title>
+                <v-list>
+                  <v-list-item
+                    v-for="system in unboundSystems"
+                    :key="system.id"
+                    @click="moveToBoundSystem(system)"
+                    class="cursor-pointer"
+                  >
+                    <v-list-item-title>{{ system.systemName }}</v-list-item-title>
+                    <v-list-item-subtitle>{{ system.vendor }}</v-list-item-subtitle>
+                    <template v-slot:append>
+                      <v-icon>mdi-arrow-right</v-icon>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+
+            <!-- 已绑定的系统节点列表 -->
+            <v-col cols="6">
+              <v-card class="pa-4" height="400">
+                <v-card-title>已绑定系统节点</v-card-title>
+                <v-list>
+                  <v-list-item
+                    v-for="system in boundSystems"
+                    :key="system.id"
+                    @click="moveToUnboundSystem(system)"
+                    class="cursor-pointer"
+                  >
+                    <v-list-item-title>{{ system.systemName }}</v-list-item-title>
+                    <v-list-item-subtitle>{{ system.vendor }}</v-list-item-subtitle>
+                    <template v-slot:append>
+                      <v-icon>mdi-arrow-left</v-icon>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -463,7 +531,7 @@
             variant="text"
             @click="handleBindSystem"
           >
-            绑定
+            保存
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -472,7 +540,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem } from '@/api/cve'
 import type { CveItem } from '@/api/cve'
 import { useUserStore } from '@/stores/user'
@@ -480,7 +548,9 @@ import { getSoftwareList } from '@/api/software'
 import type { SoftwareItem } from '@/api/software'
 import { getSystemList } from '@/api/system'
 import type { SystemNode } from '@/api/system'
+import { useNotification } from '@kyvg/vue3-notification'
 
+const notification = useNotification()
 const userStore = useUserStore()
 
 // CVE漏洞数据
@@ -543,13 +613,21 @@ const editCve = ref<CveItem>({
 const softwareList = ref<SoftwareItem[]>([])
 const bindDialog = ref(false)
 const selectedCveForBind = ref<CveItem | null>(null)
-const selectedSoftwareId = ref('')
+const selectedSoftwareIds = ref<string[]>([])
 
 // 系统节点列表
 const systemList = ref<SystemNode[]>([])
 const bindSystemDialog = ref(false)
 const selectedCveForSystemBind = ref<CveItem | null>(null)
-const selectedSystemId = ref('')
+const selectedSystemIds = ref<string[]>([])
+
+// 软件绑定相关
+const unboundSoftware = ref<SoftwareItem[]>([])
+const boundSoftware = ref<SoftwareItem[]>([])
+
+// 系统节点绑定相关
+const unboundSystems = ref<SystemNode[]>([])
+const boundSystems = ref<SystemNode[]>([])
 
 // 根据CVSS评分获取颜色
 const getCvssColor = (score: number) => {
@@ -678,24 +756,118 @@ const fetchCveList = async () => {
 // 显示绑定软件对话框
 const showBindDialog = (cve: CveItem) => {
   selectedCveForBind.value = cve
+  // 初始化未绑定和已绑定的软件列表
+  const boundIds = cve.softwareList?.map(s => s.id) || []
+  boundSoftware.value = cve.softwareList || []
+  unboundSoftware.value = softwareList.value.filter(s => !boundIds.includes(s.id))
   bindDialog.value = true
 }
 
-// 绑定软件
+// 计算可用的软件列表(排除已绑定的)
+const availableSoftware = computed(() => {
+  if (!selectedCveForBind.value) return softwareList.value
+  const boundIds = selectedCveForBind.value.softwareList?.map(s => s.id) || []
+  return softwareList.value.filter(s => !boundIds.includes(s.id))
+})
+
+// 软件选择相关
+const toggleSoftwareSelection = (software: SoftwareItem) => {
+  const index = selectedSoftwareIds.value.indexOf(software.id)
+  if (index === -1) {
+    selectedSoftwareIds.value.push(software.id)
+  } else {
+    selectedSoftwareIds.value.splice(index, 1)
+  }
+}
+
+const isSoftwareSelected = (software: SoftwareItem) => {
+  return selectedSoftwareIds.value.includes(software.id)
+}
+
+// 系统节点选择相关
+const toggleSystemSelection = (system: SystemNode) => {
+  const index = selectedSystemIds.value.indexOf(system.id)
+  if (index === -1) {
+    selectedSystemIds.value.push(system.id)
+  } else {
+    selectedSystemIds.value.splice(index, 1)
+  }
+}
+
+const isSystemSelected = (system: SystemNode) => {
+  return selectedSystemIds.value.includes(system.id)
+}
+
+// 软件绑定相关
+const moveToBound = (software: SoftwareItem) => {
+  const index = unboundSoftware.value.findIndex(s => s.id === software.id)
+  if (index !== -1) {
+    unboundSoftware.value.splice(index, 1)
+    boundSoftware.value.push(software)
+  }
+}
+
+const moveToUnbound = (software: SoftwareItem) => {
+  const index = boundSoftware.value.findIndex(s => s.id === software.id)
+  if (index !== -1) {
+    boundSoftware.value.splice(index, 1)
+    unboundSoftware.value.push(software)
+  }
+}
+
+// 系统节点绑定相关
+const moveToBoundSystem = (system: SystemNode) => {
+  const index = unboundSystems.value.findIndex(s => s.id === system.id)
+  if (index !== -1) {
+    unboundSystems.value.splice(index, 1)
+    boundSystems.value.push(system)
+  }
+}
+
+const moveToUnboundSystem = (system: SystemNode) => {
+  const index = boundSystems.value.findIndex(s => s.id === system.id)
+  if (index !== -1) {
+    boundSystems.value.splice(index, 1)
+    unboundSystems.value.push(system)
+  }
+}
+
+// 修改绑定软件函数
 const handleBindSoftware = async () => {
-  if (!selectedCveForBind.value || !selectedSoftwareId.value) return
+  if (!selectedCveForBind.value) return
   
   try {
-    const response = await bindSoftware(selectedCveForBind.value.cveId, selectedSoftwareId.value)
+    const softwareIds = boundSoftware.value.map(s => s.id)
+    const response = await bindSoftware(selectedCveForBind.value.cveId, softwareIds)
     if (response.code === 1) {
-      // 绑定成功后刷新列表
-      await fetchCveList()
+      // 更新当前CVE的软件信息
+      if (selectedCveForBind.value) {
+        selectedCveForBind.value.softwareList = boundSoftware.value
+      }
+      // 更新列表中的CVE信息
+      const index = cveList.value.findIndex(item => item.cveId === selectedCveForBind.value?.cveId)
+      if (index !== -1) {
+        cveList.value[index] = { ...cveList.value[index], softwareList: boundSoftware.value }
+      }
+      
       bindDialog.value = false
       selectedCveForBind.value = null
-      selectedSoftwareId.value = ''
+      boundSoftware.value = []
+      unboundSoftware.value = []
+      
+      notification.notify({
+        title: '成功',
+        text: '软件绑定成功',
+        type: 'success'
+      })
     }
   } catch (error) {
     console.error('绑定软件失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '软件绑定失败',
+      type: 'error'
+    })
   }
 }
 
@@ -712,24 +884,56 @@ const fetchSoftwareList = async () => {
 // 显示绑定系统节点对话框
 const showBindSystemDialog = (cve: CveItem) => {
   selectedCveForSystemBind.value = cve
+  // 初始化未绑定和已绑定的系统节点列表
+  const boundIds = cve.systemList?.map(s => s.id) || []
+  boundSystems.value = cve.systemList || []
+  unboundSystems.value = systemList.value.filter(s => !boundIds.includes(s.id))
   bindSystemDialog.value = true
 }
 
-// 绑定系统节点
+// 计算可用的系统节点列表(排除已绑定的)
+const availableSystems = computed(() => {
+  if (!selectedCveForSystemBind.value) return systemList.value
+  const boundIds = selectedCveForSystemBind.value.systemList?.map(s => s.id) || []
+  return systemList.value.filter(s => !boundIds.includes(s.id))
+})
+
+// 修改绑定系统节点函数
 const handleBindSystem = async () => {
-  if (!selectedCveForSystemBind.value || !selectedSystemId.value) return
+  if (!selectedCveForSystemBind.value) return
   
   try {
-    const response = await bindSystem(selectedCveForSystemBind.value.cveId, selectedSystemId.value)
+    const systemIds = boundSystems.value.map(s => s.id)
+    const response = await bindSystem(selectedCveForSystemBind.value.cveId, systemIds)
     if (response.code === 1) {
-      // 绑定成功后刷新列表
-      await fetchCveList()
+      // 更新当前CVE的系统节点信息
+      if (selectedCveForSystemBind.value) {
+        selectedCveForSystemBind.value.systemList = boundSystems.value
+      }
+      // 更新列表中的CVE信息
+      const index = cveList.value.findIndex(item => item.cveId === selectedCveForSystemBind.value?.cveId)
+      if (index !== -1) {
+        cveList.value[index] = { ...cveList.value[index], systemList: boundSystems.value }
+      }
+      
       bindSystemDialog.value = false
       selectedCveForSystemBind.value = null
-      selectedSystemId.value = ''
+      boundSystems.value = []
+      unboundSystems.value = []
+      
+      notification.notify({
+        title: '成功',
+        text: '系统节点绑定成功',
+        type: 'success'
+      })
     }
   } catch (error) {
     console.error('绑定系统节点失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '系统节点绑定失败',
+      type: 'error'
+    })
   }
 }
 
@@ -764,5 +968,30 @@ onMounted(() => {
 .v-list-item-subtitle {
   white-space: normal;
   word-break: break-word;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.v-list-item {
+  transition: all 0.3s ease;
+}
+
+.v-list-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.selected-item {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.v-list-item {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.v-list-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 </style> 
