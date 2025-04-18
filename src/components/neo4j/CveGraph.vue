@@ -23,8 +23,14 @@
 
     <div class="node-info" v-if="selectedNode">
       <v-card class="info-card">
-        <v-card-title class="text-h5">
-          {{ selectedNode.labels[0] }} 详情
+        <v-card-title class="text-h5 d-flex justify-space-between align-center">
+          <span>{{ selectedNode.labels[0] }} 详情</span>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            @click="selectedNode = null"
+            class="close-btn"
+          ></v-btn>
         </v-card-title>
         <v-divider></v-divider>
         <v-card-text>
@@ -229,8 +235,35 @@ const drawGraph = () => {
     .attr('stroke', '#999')
     .attr('stroke-opacity', 0.6)
     .attr('stroke-width', 2)
+    .attr('marker-end', 'url(#arrow)')
 
-     //节点
+  // 添加箭头标记
+  svg.append('defs').append('marker')
+    .attr('id', 'arrow')
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 20)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', '#999')
+
+  // 添加关系类型标签
+  const linkLabel = g.append('g')
+    .selectAll('text')
+    .data(links.value)
+    .enter()
+    .append('text')
+    .attr('font-size', 10)
+    .attr('fill', '#666')
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'auto')
+    .attr('dy', -6)
+    .text(d => d.type)
+
+  //节点
   const node = g.append('g')
     .selectAll('circle')
     .data(nodes.value)
@@ -271,6 +304,29 @@ const drawGraph = () => {
       .attr('y1', d => (d.source as any).y)
       .attr('x2', d => (d.target as any).x)
       .attr('y2', d => (d.target as any).y)
+
+    // 更新关系标签位置和旋转角度
+    linkLabel
+      .attr('transform', d => {
+        const sourceX = (d.source as any).x;
+        const sourceY = (d.source as any).y;
+        const targetX = (d.target as any).x;
+        const targetY = (d.target as any).y;
+        
+        const dx = targetX - sourceX;
+        const dy = targetY - sourceY;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        // 确保文字始终正向显示
+        if (angle > 90 || angle < -90) {
+          angle += 180;
+        }
+        
+        const midX = (sourceX + targetX) / 2;
+        const midY = (sourceY + targetY) / 2;
+        
+        return `translate(${midX},${midY}) rotate(${angle})`;
+      })
 
     node
       .attr('cx', d => d.x!)

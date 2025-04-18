@@ -74,7 +74,7 @@
                 color="primary"
                 @click="showCveDetails(item)"
               >
-                详情
+              查看详情
               </v-btn>
               <v-btn
                 size="small"
@@ -82,12 +82,12 @@
                 color="warning"
                 @click="showEditDialog(item)"
               >
-                编辑
+                编辑信息
               </v-btn>
               <v-btn
                 size="small"
                 variant="text"
-                color="success"
+                color="info"
                 @click="showBindDialog(item)"
               >
                 绑定软件
@@ -114,7 +114,7 @@
                 color="error"
                 @click="handleDelete(item)"
               >
-                删除
+                删除信息
               </v-btn>
             </template>
           </v-data-table>
