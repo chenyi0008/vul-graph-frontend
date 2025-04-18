@@ -349,7 +349,7 @@ onUnmounted(() => {
 .graph {
   width: 100%;
   height: 100%;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
   border-radius: 8px;
 }
 

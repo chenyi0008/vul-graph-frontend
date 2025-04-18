@@ -41,8 +41,11 @@
             :loading="loading"
             class="elevation-1"
           >
+            <template v-slot:item.publishTime="{ item }">
+              {{ formatDateTime(item.publishTime) }}
+            </template>
             <template v-slot:item.actions="{ item }">
-            <v-btn
+              <v-btn
                 size="small"
                 variant="text"
                 color="primary"
@@ -81,6 +84,14 @@
                 @click="showBindSystemDialog(item)"
               >
                 绑定系统
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="info"
+                @click="showBindCountryDialog(item)"
+              >
+                绑定国家
               </v-btn>
               <v-btn
                 size="small"
@@ -569,13 +580,49 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 绑定国家对话框 -->
+    <v-dialog v-model="bindCountryDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5">
+          绑定国家
+        </v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="selectedCountry"
+            :items="countryList"
+            item-title="nameZh"
+            item-value="nameEn"
+            label="选择国家"
+            return-object
+          ></v-select>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="bindCountryDialog = false"
+          >
+            取消
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="handleBindCountry"
+          >
+            保存
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem } from '@/api/cve'
-import type { CveItem } from '@/api/cve'
+import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem, bindCountry, getCountryList } from '@/api/cve'
+import type { CveItem, Country } from '@/api/cve'
 import { useUserStore } from '@/stores/user'
 import { getSoftwareList } from '@/api/software'
 import type { SoftwareItem } from '@/api/software'
@@ -608,6 +655,18 @@ const cveHeaders = ref([
   { title: '发布时间', key: 'publishTime', sortable: true },
   { title: '操作', key: 'actions', sortable: false },
 ])
+
+// 格式化时间的函数
+const formatDateTime = (dateTimeStr: string) => {
+  const date = new Date(dateTimeStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
 
 const cveList = ref<CveItem[]>([])
 const loading = ref(false)
@@ -674,6 +733,12 @@ const boundSoftware = ref<SoftwareItem[]>([])
 // 系统节点绑定相关
 const unboundSystems = ref<SystemNode[]>([])
 const boundSystems = ref<SystemNode[]>([])
+
+// 国家列表
+const countryList = ref<Country[]>([])
+const bindCountryDialog = ref(false)
+const selectedCveForCountryBind = ref<CveItem | null>(null)
+const selectedCountry = ref<Country | null>(null)
 
 // 根据CVSS评分获取颜色
 const getCvssColor = (score: number) => {
@@ -999,11 +1064,69 @@ const fetchSystemList = async () => {
   }
 }
 
+// 显示绑定国家对话框
+const showBindCountryDialog = (cve: CveItem) => {
+  selectedCveForCountryBind.value = cve
+  selectedCountry.value = cve.country || null
+  bindCountryDialog.value = true
+}
+
+// 获取国家列表
+const fetchCountryList = async () => {
+  try {
+    const response = await getCountryList()
+    countryList.value = response.data
+  } catch (error) {
+    console.error('获取国家列表失败:', error)
+  }
+}
+
+// 绑定国家
+const handleBindCountry = async () => {
+  if (!selectedCveForCountryBind.value || !selectedCountry.value) return
+  
+  try {
+    const response = await bindCountry(selectedCveForCountryBind.value.cveId, selectedCountry.value.nameEn)
+    if (response.code === 1) {
+      // 更新当前CVE的国家信息
+      if (selectedCveForCountryBind.value) {
+        selectedCveForCountryBind.value.country = selectedCountry.value
+      }
+      // 更新列表中的CVE信息
+      const index = cveList.value.findIndex(item => item.cveId === selectedCveForCountryBind.value?.cveId)
+      if (index !== -1) {
+        cveList.value[index] = { ...cveList.value[index], country: selectedCountry.value }
+      }
+      
+      // 更新时间戳以触发图形重新渲染
+      graphTimestamp.value = Date.now()
+      
+      bindCountryDialog.value = false
+      selectedCveForCountryBind.value = null
+      selectedCountry.value = null
+      
+      notification.notify({
+        title: '成功',
+        text: '国家绑定成功',
+        type: 'success'
+      })
+    }
+  } catch (error) {
+    console.error('绑定国家失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '国家绑定失败',
+      type: 'error'
+    })
+  }
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchCveList()
   fetchSoftwareList()
   fetchSystemList()
+  fetchCountryList()
 })
 </script>
 

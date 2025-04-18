@@ -63,10 +63,29 @@ export const bindSoftware = (cveId: string, softwareIdList: string[]) => {
   return request.post<BaseResponse<null>>(`/cve/bind-software?${searchParams.toString()}`);
 };
 
-export const bindSystem = (cveId: string, systemIdList: string[]) => {
+export const bindSystem = (cveId: string, systemIds: string[]) => {
+  return request.post<BaseResponse<null>>('/cve/bind-system', {
+    cveId,
+    systemIds
+  })
+}
+
+// 绑定国家
+export const bindCountry = (cveId: string, countryId: string) => {
   const searchParams = new URLSearchParams();
   searchParams.append('cveId', cveId);
-  systemIdList.forEach(id => searchParams.append('systemId', id));
+  searchParams.append('countryId', countryId);
+  
+  return request.post<BaseResponse<CveItem>>(`/cve/bind-system?${searchParams.toString()}`);
+}
 
-  return request.post<BaseResponse<null>>(`/cve/bind-system?${searchParams.toString()}`);
-};
+// 获取国家列表
+export const getCountryList = () => {
+  return request.get<BaseResponse<Country[]>>('/country')
+}
+
+// 国家接口
+export interface Country {
+  nameEn: string
+  nameZh: string
+}
