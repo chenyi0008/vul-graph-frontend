@@ -26,16 +26,33 @@
       <v-col cols="12" md="8">
         <v-card elevation="2">
           <v-card-title class="text-h6 font-weight-medium d-flex justify-space-between align-center">
-            <div class="d-flex align-center">
-              <span>CVE漏洞列表</span>
+            <span>CVE漏洞列表</span>
+            <v-btn
+              color="primary"
+              @click="showCreateDialog"
+            >
+              添加CVE
+            </v-btn>
+          </v-card-title>
+
+          <v-card-text style="padding-bottom: 0px;">
+            <div class="d-flex align-center flex-wrap gap-4">
+              <v-text-field
+                v-model="searchCveId"
+                placeholder="输入CVE ID"
+                @update:model-value="handleSearch"
+                clearable
+                style="width: 200px;"
+                density="compact"
+                bg-color="#ffffff"
+              ></v-text-field>
               <v-select
                 v-model="selectedSeverity"
                 :items="severityOptions"
                 placeholder="漏洞等级"
                 @update:model-value="handleSeverityChange"
                 clearable
-                class="ml-4"
-                style="width: 205px; height: 40px;"
+                style="width: 205px;"
                 density="compact"
                 bg-color="#ffffff"
               ></v-select>
@@ -45,19 +62,12 @@
                 placeholder="漏洞类型"
                 @update:model-value="handleVulnTypeChange"
                 clearable
-                class="ml-4"
-                style="width: 350px; height: 40px;"
+                style="width: 350px;"
                 density="compact"
                 bg-color="#ffffff"
               ></v-select>
             </div>
-            <v-btn
-              color="primary"
-              @click="showCreateDialog"
-            >
-              添加CVE
-            </v-btn>
-          </v-card-title>
+          </v-card-text>
 
           <v-data-table
             :headers="cveHeaders"
@@ -1192,23 +1202,31 @@ const vulnTypeOptions = [
 
 const selectedVulnType = ref(null)
 
-// 处理漏洞类型变化
-const handleVulnTypeChange = async (value) => {
+// 在script部分添加
+const searchCveId = ref('')
+
+// 处理搜索
+const handleSearch = async (value) => {
   try {
     loading.value = true
     let params = { min: 0, max: 999, type: '' }
     
     if (value) {
-      params.type = value
+      params.id = value
     }
     
     // 如果同时选择了漏洞等级，添加到查询参数中
     if (selectedSeverity.value) {
-      console.log(selectedSeverity.value)
       const selectedOption = severityOptions.find(option => option.value === selectedSeverity.value)
       if (selectedOption) {
-        params.type = selectedOption.value
+        params.min = selectedOption.min
+        params.max = selectedOption.max
       }
+    }
+    
+    // 如果同时选择了漏洞类型，添加到查询参数中
+    if (selectedVulnType.value) {
+      params.type = selectedVulnType.value
     }
     
     const response = await getCveList(params)
@@ -1225,7 +1243,45 @@ const handleVulnTypeChange = async (value) => {
   }
 }
 
-// 修改漏洞等级变化处理函数
+// 修改handleVulnTypeChange函数
+const handleVulnTypeChange = async (value) => {
+  try {
+    loading.value = true
+    let params = { min: 0, max: 999, type: '' }
+    
+    if (value) {
+      params.type = value
+    }
+    
+    // 如果同时选择了漏洞等级，添加到查询参数中
+    if (selectedSeverity.value) {
+      const selectedOption = severityOptions.find(option => option.value === selectedSeverity.value)
+      if (selectedOption) {
+        params.min = selectedOption.min
+        params.max = selectedOption.max
+      }
+    }
+    
+    // 如果同时输入了CVE ID，添加到查询参数中
+    if (searchCveId.value) {
+      params.id = searchCveId.value
+    }
+    
+    const response = await getCveList(params)
+    cveList.value = response.data
+  } catch (error) {
+    console.error('获取CVE列表失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE列表失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 修改handleSeverityChange函数
 const handleSeverityChange = async (value) => {
   try {
     loading.value = true
@@ -1242,6 +1298,11 @@ const handleSeverityChange = async (value) => {
     // 如果同时选择了漏洞类型，添加到查询参数中
     if (selectedVulnType.value) {
       params.type = selectedVulnType.value
+    }
+    
+    // 如果同时输入了CVE ID，添加到查询参数中
+    if (searchCveId.value) {
+      params.id = searchCveId.value
     }
     
     const response = await getCveList(params)
