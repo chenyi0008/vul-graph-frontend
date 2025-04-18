@@ -26,7 +26,21 @@
       <v-col cols="12" md="8">
         <v-card elevation="2">
           <v-card-title class="text-h6 font-weight-medium d-flex justify-space-between align-center">
-            CVE漏洞列表
+            <div class="d-flex align-center">
+              <span>CVE漏洞列表</span>
+              <v-select
+                v-model="selectedSeverity"
+                :items="severityOptions"
+                placeholder="漏洞等级"
+                @update:model-value="handleSeverityChange"
+                clearable
+                class="ml-4"
+                style="width: 205px; height: 40px;"
+                density="compact"
+                bg-color="#ffffff"
+              ></v-select>
+
+            </div>
             <v-btn
               color="primary"
               @click="showCreateDialog"
@@ -34,6 +48,7 @@
               添加CVE
             </v-btn>
           </v-card-title>
+
           <v-data-table
             :headers="cveHeaders"
             :items="cveList"
@@ -852,13 +867,18 @@ const confirmDelete = async () => {
 }
 
 // 获取CVE列表
-const fetchCveList = async () => {
+const fetchCveList = async (params = {}) => {
   try {
     loading.value = true
-    const response = await getCveList()
+    const response = await getCveList(params)
     cveList.value = response.data
   } catch (error) {
     console.error('获取CVE列表失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE列表失败',
+      type: 'error'
+    })
   } finally {
     loading.value = false
   }
@@ -870,15 +890,15 @@ const showBindDialog = (cve: CveItem) => {
   // 初始化未绑定和已绑定的软件列表
   const boundIds = cve.softwareList?.map(s => s.id) || []
   boundSoftware.value = cve.softwareList || []
-  unboundSoftware.value = softwareList.value.filter(s => !boundIds.includes(s.id))
+  unboundSoftware.value = softwareList.value?.filter(s => !boundIds.includes(s.id)) || []
   bindDialog.value = true
 }
 
 // 计算可用的软件列表(排除已绑定的)
 const availableSoftware = computed(() => {
-  if (!selectedCveForBind.value) return softwareList.value
+  if (!selectedCveForBind.value) return softwareList.value || []
   const boundIds = selectedCveForBind.value.softwareList?.map(s => s.id) || []
-  return softwareList.value.filter(s => !boundIds.includes(s.id))
+  return (softwareList.value || []).filter(s => !boundIds.includes(s.id))
 })
 
 // 软件选择相关
@@ -1001,15 +1021,15 @@ const showBindSystemDialog = (cve: CveItem) => {
   // 初始化未绑定和已绑定的系统节点列表
   const boundIds = cve.systemList?.map(s => s.id) || []
   boundSystems.value = cve.systemList || []
-  unboundSystems.value = systemList.value.filter(s => !boundIds.includes(s.id))
+  unboundSystems.value = systemList.value?.filter(s => !boundIds.includes(s.id)) || []
   bindSystemDialog.value = true
 }
 
 // 计算可用的系统节点列表(排除已绑定的)
 const availableSystems = computed(() => {
-  if (!selectedCveForSystemBind.value) return systemList.value
+  if (!selectedCveForSystemBind.value) return systemList.value || []
   const boundIds = selectedCveForSystemBind.value.systemList?.map(s => s.id) || []
-  return systemList.value.filter(s => !boundIds.includes(s.id))
+  return (systemList.value || []).filter(s => !boundIds.includes(s.id))
 })
 
 // 修改绑定系统节点函数
@@ -1121,12 +1141,68 @@ const handleBindCountry = async () => {
   }
 }
 
+// 漏洞等级选项
+const severityOptions = [
+  { title: '低危 (0-3.9)', value: 'low', min: 0, max: 3.9 },
+  { title: '中危 (4.0-6.9)', value: 'medium', min: 4.0, max: 6.9 },
+  { title: '高危 (7.0-8.9)', value: 'high', min: 7.0, max: 8.9 },
+  { title: '严重 (9.0-10.0)', value: 'critical', min: 9.0, max: 10.0 }
+]
+
+const selectedSeverity = ref(null)
+
+// 处理漏洞等级变化
+const handleSeverityChange = async (value) => {
+  try {
+    loading.value = true
+    let params = {}
+    
+    if (!value) {
+      // 如果没有选择，使用0-999的范围
+      params = { min: 0, max: 999 }
+    } else {
+      const selectedOption = severityOptions.find(option => option.value === value)
+      if (selectedOption) {
+        params = { min: selectedOption.min, max: selectedOption.max }
+      }
+    }
+    
+    const response = await getCveList(params)
+    cveList.value = response.data
+  } catch (error) {
+    console.error('获取CVE列表失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE列表失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
 // 组件挂载时获取数据
-onMounted(() => {
-  fetchCveList()
-  fetchSoftwareList()
-  fetchSystemList()
-  fetchCountryList()
+onMounted(async () => {
+  // 初始化时加载所有CVE数据
+  try {
+    loading.value = true
+    const response = await getCveList({ min: 0, max: 999 })
+    cveList.value = response.data
+  } catch (error) {
+    console.error('获取CVE列表失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE列表失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
+  
+  // 获取其他列表数据
+  await fetchSoftwareList()
+  await fetchSystemList()
+  await fetchCountryList()
 })
 </script>
 

@@ -82,6 +82,7 @@ const selectedNode = ref<Node | null>(null)
 const fetchData = async () => {
   if (!props.cveId) return
 
+  //sql
   const session = driver.session()
   try {
     const result = await session.run(`

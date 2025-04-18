@@ -74,6 +74,7 @@ const links = ref<Link[]>([])
 const zoom = ref<d3.ZoomBehavior<Element, unknown>>()
 const selectedNode = ref<Node | null>(null)
 
+//sql
 const fetchData = async () => {
   const session = driver.session()
   try {

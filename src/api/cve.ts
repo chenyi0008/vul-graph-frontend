@@ -35,8 +35,11 @@ export interface CreateCveResponse extends BaseResponse<CveItem> {}
 export interface UpdateCveResponse extends BaseResponse<CveItem> {}
 export interface DeleteCveResponse extends BaseResponse<null> {}
 
-export const getCveList = (): Promise<CveResponse> => {
-  return request.get<CveResponse>('/cve')
+export const getCveList = (params: { min: number, max: number }): Promise<CveResponse> => {
+  console.log('请求参数类型检查:', params)
+  return request.get<CveResponse>('/cve', 
+    { params: { min: params.min, max: params.max } }
+  )
 }
 
 export const getCveById = (cveId: string): Promise<CreateCveResponse> => {
