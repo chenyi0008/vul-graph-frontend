@@ -239,6 +239,19 @@ const drawGraph = () => {
     .attr('d', 'M0,-5L10,0L0,5')
     .attr('fill', '#999')
 
+  // 添加高亮箭头标记
+  svg.append('defs').append('marker')
+    .attr('id', 'arrow-highlight')
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 20)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', '#ffd700')
+
   // 添加关系类型标签
   const linkLabel = g.append('g')
     .selectAll('text')
@@ -266,9 +279,53 @@ const drawGraph = () => {
       return '#45b7d1'
     })
     .style('cursor', 'pointer')
+    .attr('stroke', '#fff')  // 默认白色边框
+    .attr('stroke-width', 2)
     .on('click', (event, d) => {
+      // 重置所有节点和边的样式
+      node.attr('stroke', '#fff').attr('stroke-width', 2)
+      link.attr('stroke', '#999')
+        .attr('stroke-opacity', 0.6)
+        .attr('marker-end', 'url(#arrow)')
+      
+      // 设置选中节点的样式
+      d3.select(event.currentTarget)
+        .attr('stroke', '#ffd700')
+        .attr('stroke-width', 3)
+      
+      // 找到相关的边和节点
+      const connectedLinks = links.value.filter(l => 
+        l.source.id === d.id || l.target.id === d.id
+      )
+      
+      // 高亮相关边
+      link.each(function(l) {
+        if (connectedLinks.some(cl => 
+          cl.source.id === l.source.id && cl.target.id === l.target.id
+        )) {
+          d3.select(this)
+            .attr('stroke', '#ffd700')
+            .attr('stroke-opacity', 1)
+            .attr('marker-end', 'url(#arrow-highlight)')
+        }
+      })
+      
+      // 高亮相邻节点
+      const connectedNodeIds = new Set(
+        connectedLinks.flatMap(l => [
+          l.source.id === d.id ? l.target.id : l.source.id
+        ])
+      )
+      
+      node.each(function(n) {
+        if (connectedNodeIds.has(n.id)) {
+          d3.select(this)
+            .attr('stroke', '#fff5b8')  // 浅黄色边框
+            .attr('stroke-width', 3)
+        }
+      })
+      
       selectedNode.value = d
-      console.log('selectedNode', selectedNode.value)
     })
     .call(drag(simulation))
 

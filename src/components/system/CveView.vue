@@ -39,7 +39,17 @@
                 density="compact"
                 bg-color="#ffffff"
               ></v-select>
-
+              <v-select
+                v-model="selectedVulnType"
+                :items="vulnTypeOptions"
+                placeholder="漏洞类型"
+                @update:model-value="handleVulnTypeChange"
+                clearable
+                class="ml-4"
+                style="width: 350px; height: 40px;"
+                density="compact"
+                bg-color="#ffffff"
+              ></v-select>
             </div>
             <v-btn
               color="primary"
@@ -1151,20 +1161,87 @@ const severityOptions = [
 
 const selectedSeverity = ref(null)
 
-// 处理漏洞等级变化
+// 漏洞类型选项
+const vulnTypeOptions = [
+  { title: 'CWE-79：跨站脚本', value: 'CWE-79' },
+  { title: 'CWE-787：越界写入', value: 'CWE-787' },
+  { title: 'CWE-89：SQL注入', value: 'CWE-89' },
+  { title: 'CWE-352：跨站请求伪造', value: 'CWE-352' },
+  { title: 'CWE-22：路径遍历', value: 'CWE-22' },
+  { title: 'CWE-125：越界读取', value: 'CWE-125' },
+  { title: 'CWE-78：操作系统命令注入', value: 'CWE-78' },
+  { title: 'CWE-416：释放后使用', value: 'CWE-416' },
+  { title: 'CWE-862：缺少授权', value: 'CWE-862' },
+  { title: 'CWE-434：无限制上传危险文件', value: 'CWE-434' },
+  { title: 'CWE-94：代码注入', value: 'CWE-94' },
+  { title: 'CWE-20：不正确的输入验证', value: 'CWE-20' },
+  { title: 'CWE-77：命令注入', value: 'CWE-77' },
+  { title: 'CWE-287：身份验证不当', value: 'CWE-287' },
+  { title: 'CWE-269：权限管理不当', value: 'CWE-269' },
+  { title: 'CWE-502：不受信任数据的反序列化', value: 'CWE-502' },
+  { title: 'CWE-200：敏感信息暴露', value: 'CWE-200' },
+  { title: 'CWE-863：授权不正确', value: 'CWE-863' },
+  { title: 'CWE-918：服务器端请求伪造', value: 'CWE-918' },
+  { title: 'CWE-119：内存缓冲区边界限制不当', value: 'CWE-119' },
+  { title: 'CWE-476：空指针解引用', value: 'CWE-476' },
+  { title: 'CWE-798：使用硬编码凭证', value: 'CWE-798' },
+  { title: 'CWE-190：整数溢出或回绕', value: 'CWE-190' },
+  { title: 'CWE-400：不受控制的资源消耗', value: 'CWE-400' },
+  { title: 'CWE-306：缺少关键功能的身份验证', value: 'CWE-306' }
+]
+
+const selectedVulnType = ref(null)
+
+// 处理漏洞类型变化
+const handleVulnTypeChange = async (value) => {
+  try {
+    loading.value = true
+    let params = { min: 0, max: 999, type: '' }
+    
+    if (value) {
+      params.type = value
+    }
+    
+    // 如果同时选择了漏洞等级，添加到查询参数中
+    if (selectedSeverity.value) {
+      console.log(selectedSeverity.value)
+      const selectedOption = severityOptions.find(option => option.value === selectedSeverity.value)
+      if (selectedOption) {
+        params.type = selectedOption.value
+      }
+    }
+    
+    const response = await getCveList(params)
+    cveList.value = response.data
+  } catch (error) {
+    console.error('获取CVE列表失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE列表失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 修改漏洞等级变化处理函数
 const handleSeverityChange = async (value) => {
   try {
     loading.value = true
-    let params = {}
+    let params = { min: 0, max: 999, type: '' }
     
-    if (!value) {
-      // 如果没有选择，使用0-999的范围
-      params = { min: 0, max: 999 }
-    } else {
+    if (value) {
       const selectedOption = severityOptions.find(option => option.value === value)
       if (selectedOption) {
-        params = { min: selectedOption.min, max: selectedOption.max }
+        params.min = selectedOption.min
+        params.max = selectedOption.max
       }
+    }
+    
+    // 如果同时选择了漏洞类型，添加到查询参数中
+    if (selectedVulnType.value) {
+      params.type = selectedVulnType.value
     }
     
     const response = await getCveList(params)

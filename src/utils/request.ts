@@ -36,15 +36,15 @@ request.interceptors.response.use(
     return response.data
   },
   (error) => {
-    // const status = error.response?.status
-    // // 处理401和403状态码
-    // if (status === 401 || status === 403) {
-    //   // 清除用户信息
-    //   localStorage.removeItem('token')
-    //   // 重定向到登录页面
-    //   window.location.href = '/login'
-    //   return Promise.reject(new Error('请重新登录'))
-    // }
+    const status = error.response?.status
+    // 处理401和403状态码
+    if (status === 401 || status === 403) {
+      // 清除用户信息
+      localStorage.removeItem('token')
+      // 重定向到登录页面
+      window.location.href = '/login'
+      return Promise.reject(new Error('请重新登录'))
+    }
 
     const message =
       error.response?.data?.message || error.message || '请求失败'
