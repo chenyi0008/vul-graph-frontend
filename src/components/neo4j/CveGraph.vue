@@ -47,6 +47,7 @@ import * as d3 from 'd3'
 
 const props = defineProps<{
   cveId?: string
+  timestamp?: number
 }>()
 
 const graphRef = ref<HTMLElement | null>(null)
@@ -309,6 +310,13 @@ const drag = (simulation: d3.Simulation<Node, undefined>) => {
 watch(() => props.cveId, () => {
   fetchData()
 })
+
+// 监听时间戳变化
+watch(() => props.timestamp, (newVal) => {
+  if (props.cveId) {
+    fetchData()
+  }
+}, { immediate: true })
 
 onMounted(() => {
   console.log('cveId', props.cveId)

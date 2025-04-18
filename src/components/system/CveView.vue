@@ -12,6 +12,7 @@
               v-show="selectedCveForGraph" 
               :key="selectedCveForGraph?.cveId"
               :cveId="selectedCveForGraph?.cveId || ''" 
+              :timestamp="graphTimestamp"
             />
             <div v-show="!selectedCveForGraph" class="no-selection">
               <v-icon size="64" color="grey">mdi-graph</v-icon>
@@ -589,6 +590,9 @@ const userStore = useUserStore()
 // 选中的CVE用于显示图形
 const selectedCveForGraph = ref<CveItem | null>(null)
 
+// 添加时间戳
+const graphTimestamp = ref(Date.now())
+
 // 处理表格行点击
 const handleRowClick = (item: any) => {
   console.log('选中CVE:', item.cveId)
@@ -892,6 +896,9 @@ const handleBindSoftware = async () => {
         cveList.value[index] = { ...cveList.value[index], softwareList: boundSoftware.value }
       }
       
+      // 更新时间戳以触发图形重新渲染
+      graphTimestamp.value = Date.now()
+      
       bindDialog.value = false
       selectedCveForBind.value = null
       boundSoftware.value = []
@@ -958,6 +965,9 @@ const handleBindSystem = async () => {
         cveList.value[index] = { ...cveList.value[index], systemList: boundSystems.value }
       }
       
+      // 更新时间戳以触发图形重新渲染
+      graphTimestamp.value = Date.now()
+      
       bindSystemDialog.value = false
       selectedCveForSystemBind.value = null
       boundSystems.value = []
@@ -999,8 +1009,19 @@ onMounted(() => {
 
 <style scoped>
 .cve-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.v-row {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.v-col {
+  padding: 16px;
 }
 
 .graph-column {
