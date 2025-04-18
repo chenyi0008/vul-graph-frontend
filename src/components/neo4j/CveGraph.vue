@@ -80,7 +80,6 @@ const zoom = ref<d3.ZoomBehavior<Element, unknown>>()
 const selectedNode = ref<Node | null>(null)
 
 const fetchData = async () => {
-
   if (!props.cveId) return
 
   const session = driver.session()
@@ -89,75 +88,100 @@ const fetchData = async () => {
       MATCH (cve:CVE {cveId: $cveId})
       OPTIONAL MATCH (cve)-[r1]->(s:Software)
       OPTIONAL MATCH (cve)-[r2]->(sys:System)
-      RETURN cve, r1, s, r2, sys
+      OPTIONAL MATCH (country:Country)-[r3]->(cve)
+      RETURN cve, r1, s, r2, sys, r3, country
     `, { cveId: props.cveId })
 
     // 清空之前的数据
     nodes.value = []
     links.value = []
     
-    const nodeMap = new Map<string, Node>()
-    const linkSet = new Set<string>()
+    // 使用普通对象代替Map和Set
+    const nodeMap: Record<string, Node> = {}
+    const linkSet: Record<string, boolean> = {}
 
     result.records.forEach(record => {
       const cve = record.get('cve')
       const software = record.get('s')
       const system = record.get('sys')
+      const country = record.get('country')
       const rel1 = record.get('r1')
       const rel2 = record.get('r2')
+      const rel3 = record.get('r3')
 
       if (cve) {
-        nodeMap.set(cve.identity.toString(), {
+        nodeMap[cve.identity.toString()] = {
           id: cve.identity.toString(),
           labels: cve.labels,
           properties: cve.properties
-        })
+        }
       }
 
       if (software) {
-        nodeMap.set(software.identity.toString(), {
+        nodeMap[software.identity.toString()] = {
           id: software.identity.toString(),
           labels: software.labels,
           properties: software.properties
-        })
+        }
       }
 
       if (system) {
-        nodeMap.set(system.identity.toString(), {
+        nodeMap[system.identity.toString()] = {
           id: system.identity.toString(),
           labels: system.labels,
           properties: system.properties
-        })
+        }
+      }
+
+      if (country) {
+        nodeMap[country.identity.toString()] = {
+          id: country.identity.toString(),
+          labels: country.labels,
+          properties: country.properties
+        }
       }
 
       if (rel1) {
         const linkId = `${rel1.start.toString()}-${rel1.end.toString()}`
-        if (!linkSet.has(linkId)) {
+        if (!linkSet[linkId]) {
           links.value.push({
             source: rel1.start.toString(),
             target: rel1.end.toString(),
             type: rel1.type,
             properties: rel1.properties
           })
-          linkSet.add(linkId)
+          linkSet[linkId] = true
         }
       }
 
       if (rel2) {
         const linkId = `${rel2.start.toString()}-${rel2.end.toString()}`
-        if (!linkSet.has(linkId)) {
+        if (!linkSet[linkId]) {
           links.value.push({
             source: rel2.start.toString(),
             target: rel2.end.toString(),
             type: rel2.type,
             properties: rel2.properties
           })
-          linkSet.add(linkId)
+          linkSet[linkId] = true
+        }
+      }
+
+      if (rel3) {
+        const linkId = `${rel3.start.toString()}-${rel3.end.toString()}`
+        if (!linkSet[linkId]) {
+          links.value.push({
+            source: rel3.start.toString(),
+            target: rel3.end.toString(),
+            type: rel3.type,
+            properties: rel3.properties
+          })
+          linkSet[linkId] = true
         }
       }
     })
 
-    nodes.value = Array.from(nodeMap.values())
+    nodes.value = Object.values(nodeMap)
     drawGraph()
   } catch (error) {
     console.error('Error fetching data:', error)
@@ -205,6 +229,7 @@ const drawGraph = () => {
     .attr('stroke-opacity', 0.6)
     .attr('stroke-width', 2)
 
+     //节点
   const node = g.append('g')
     .selectAll('circle')
     .data(nodes.value)
@@ -214,6 +239,7 @@ const drawGraph = () => {
     .attr('fill', d => {
       if (d.labels.includes('CVE')) return '#ff6b6b'
       if (d.labels.includes('Software')) return '#4ecdc4'
+      if (d.labels.includes('Country')) return '#e7b04f'
       return '#45b7d1'
     })
     .style('cursor', 'pointer')
@@ -222,6 +248,7 @@ const drawGraph = () => {
     })
     .call(drag(simulation))
 
+  //展示属性名
   const label = g.append('g')
     .selectAll('text')
     .data(nodes.value)
@@ -230,6 +257,7 @@ const drawGraph = () => {
     .text(d => {
       if (d.labels.includes('CVE')) return d.properties.cveId
       if (d.labels.includes('Software')) return d.properties.名称
+      if (d.labels.includes('Country')) return d.properties.中文名
       return d.properties.系统名称
     })
     .attr('font-size', 12)

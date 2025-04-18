@@ -59,15 +59,15 @@ export const bindSoftware = (cveId: string, softwareIdList: string[]) => {
   const searchParams = new URLSearchParams();
   searchParams.append('cveId', cveId);
   softwareIdList.forEach(id => searchParams.append('softwareId', id));
-
+  
   return request.post<BaseResponse<null>>(`/cve/bind-software?${searchParams.toString()}`);
-};
+}
 
 export const bindSystem = (cveId: string, systemIds: string[]) => {
-  return request.post<BaseResponse<null>>('/cve/bind-system', {
-    cveId,
-    systemIds
-  })
+  const searchParams = new URLSearchParams();
+  searchParams.append('cveId', cveId);
+  systemIds.forEach(id => searchParams.append('systemId', id));
+  return request.post<BaseResponse<null>>(`/cve/bind-system?${searchParams.toString()}`)
 }
 
 // 绑定国家
@@ -76,7 +76,7 @@ export const bindCountry = (cveId: string, countryId: string) => {
   searchParams.append('cveId', cveId);
   searchParams.append('countryId', countryId);
   
-  return request.post<BaseResponse<CveItem>>(`/cve/bind-system?${searchParams.toString()}`);
+  return request.post<BaseResponse<CveItem>>(`/cve/bind-country?${searchParams.toString()}`);
 }
 
 // 获取国家列表

@@ -81,7 +81,8 @@ const fetchData = async () => {
       MATCH (cve:CVE)
       OPTIONAL MATCH (cve)-[r1]->(s:Software)
       OPTIONAL MATCH (cve)-[r2]->(sys:System)
-      RETURN cve, r1, s, r2, sys
+      OPTIONAL MATCH (country:Country)-[r3]->(cve)
+      RETURN cve, r1, s, r2, sys, r3, country
     `)
 
     const nodeMap = new Map<string, Node>()
@@ -91,8 +92,10 @@ const fetchData = async () => {
       const cve = record.get('cve')
       const software = record.get('s')
       const system = record.get('sys')
+      const country = record.get('country')
       const rel1 = record.get('r1')
       const rel2 = record.get('r2')
+      const rel3 = record.get('r3')
 
       if (cve) {
         nodeMap.set(cve.identity.toString(), {
@@ -118,6 +121,14 @@ const fetchData = async () => {
         })
       }
 
+      if (country) {
+        nodeMap.set(country.identity.toString(), {
+          id: country.identity.toString(),
+          labels: country.labels,
+          properties: country.properties
+        })
+      }
+
       if (rel1) {
         const linkId = `${rel1.start.toString()}-${rel1.end.toString()}`
         if (!linkSet.has(linkId)) {
@@ -139,6 +150,19 @@ const fetchData = async () => {
             target: rel2.end.toString(),
             type: rel2.type,
             properties: rel2.properties
+          })
+          linkSet.add(linkId)
+        }
+      }
+
+      if (rel3) {
+        const linkId = `${rel3.start.toString()}-${rel3.end.toString()}`
+        if (!linkSet.has(linkId)) {
+          links.value.push({
+            source: rel3.start.toString(),
+            target: rel3.end.toString(),
+            type: rel3.type,
+            properties: rel3.properties
           })
           linkSet.add(linkId)
         }
@@ -180,9 +204,10 @@ const drawGraph = () => {
   const g = svg.append('g')
 
   const simulation = d3.forceSimulation<Node>()
-    .force('link', d3.forceLink<Node, Link>().id(d => d.id).distance(100))
-    .force('charge', d3.forceManyBody<Node>().strength(-300))
+    .force('link', d3.forceLink<Node, Link>().id(d => d.id).distance(200))
+    .force('charge', d3.forceManyBody<Node>().strength(-1000))
     .force('center', d3.forceCenter<Node>(width / 2, height / 2))
+    .force('collision', d3.forceCollide<Node>().radius(50))
 
   const link = g.append('g')
     .selectAll('line')
@@ -193,6 +218,7 @@ const drawGraph = () => {
     .attr('stroke-opacity', 0.6)
     .attr('stroke-width', 2)
 
+    //节点
   const node = g.append('g')
     .selectAll('circle')
     .data(nodes.value)
@@ -202,6 +228,7 @@ const drawGraph = () => {
     .attr('fill', d => {
       if (d.labels.includes('CVE')) return '#ff6b6b'
       if (d.labels.includes('Software')) return '#4ecdc4'
+      if (d.labels.includes('Country')) return '#e7b04f'
       return '#45b7d1'
     })
     .style('cursor', 'pointer')
@@ -210,6 +237,7 @@ const drawGraph = () => {
     })
     .call(drag(simulation))
 
+     //展示属性名
   const label = g.append('g')
     .selectAll('text')
     .data(nodes.value)
@@ -218,6 +246,7 @@ const drawGraph = () => {
     .text(d => {
       if (d.labels.includes('CVE')) return d.properties.cveId
       if (d.labels.includes('Software')) return d.properties.名称
+      if (d.labels.includes('Country')) return d.properties.中文名
       return d.properties.系统名称
     })
     .attr('font-size', 12)
@@ -323,7 +352,7 @@ onUnmounted(() => {
 .graph {
   width: 100%;
   height: 100%;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
   border-radius: 8px;
 }
 
