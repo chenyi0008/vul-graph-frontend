@@ -27,15 +27,24 @@
         <v-card elevation="2">
           <v-card-title class="text-h6 font-weight-medium d-flex justify-space-between align-center">
             <span>CVE漏洞列表</span>
-            <v-btn
-              color="primary"
-              @click="showCreateDialog"
-            >
-              添加CVE
-            </v-btn>
+            <div class="d-flex align-center">
+              <v-btn
+                color="info"
+                class="mr-2"
+                @click="showUploadDialog"
+              >
+                批量上传
+              </v-btn>
+              <v-btn
+                color="primary"
+                @click="showCreateDialog"
+              >
+                添加CVE
+              </v-btn>
+            </div>
           </v-card-title>
 
-          <v-card-text style="padding-bottom: 0px;">
+          <v-card-text style="padding: 0px;">
             <div class="d-flex align-center flex-wrap gap-4">
               <v-text-field
                 v-model="searchCveId"
@@ -45,6 +54,7 @@
                 style="width: 200px;"
                 density="compact"
                 bg-color="#ffffff"
+                hide-details
               ></v-text-field>
               <v-select
                 v-model="selectedSeverity"
@@ -55,6 +65,7 @@
                 style="width: 205px;"
                 density="compact"
                 bg-color="#ffffff"
+                hide-details
               ></v-select>
               <v-select
                 v-model="selectedVulnType"
@@ -65,6 +76,7 @@
                 style="width: 350px;"
                 density="compact"
                 bg-color="#ffffff"
+                hide-details
               ></v-select>
             </div>
           </v-card-text>
@@ -651,12 +663,59 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 文件上传对话框 -->
+    <v-dialog v-model="uploadDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5">
+          批量上传CVE文件
+        </v-card-title>
+        <v-card-text>
+          <v-file-input
+            v-model="uploadFiles"
+            label="选择文件"
+            multiple
+            accept=".json"
+            prepend-icon="mdi-file-upload"
+            :rules="[v => !v || v.length <= 10 || '最多只能上传10个文件']"
+            :loading="uploading"
+            :disabled="uploading"
+            show-size
+            counter
+            chips
+            truncate-length="25"
+          ></v-file-input>
+          <div class="text-caption text-grey mt-2">
+            支持上传JSON格式的CVE文件，最多可同时上传10个文件
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="uploadDialog = false"
+            :disabled="uploading"
+          >
+            取消
+          </v-btn>
+          <v-btn
+            color="primary"
+            @click="handleUpload"
+            :loading="uploading"
+            :disabled="!uploadFiles || uploadFiles.length === 0"
+          >
+            上传
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem, bindCountry, getCountryList } from '@/api/cve'
+import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem, bindCountry, getCountryList, uploadCveFiles } from '@/api/cve'
 import type { CveItem, Country } from '@/api/cve'
 import { useUserStore } from '@/stores/user'
 import { getSoftwareList } from '@/api/software'
@@ -1316,6 +1375,47 @@ const handleSeverityChange = async (value) => {
     })
   } finally {
     loading.value = false
+  }
+}
+
+// 文件上传相关
+const uploadDialog = ref(false)
+const uploadFiles = ref<File[]>([])
+const uploading = ref(false)
+
+// 显示上传对话框
+const showUploadDialog = () => {
+  uploadDialog.value = true
+  uploadFiles.value = []
+}
+
+// 处理文件上传
+const handleUpload = async () => {
+  if (!uploadFiles.value || uploadFiles.value.length === 0) return
+  
+  try {
+    uploading.value = true
+    const response = await uploadCveFiles(uploadFiles.value)
+    if (response.code === 1) {
+      notification.notify({
+        title: '成功',
+        text: '文件上传成功',
+        type: 'success'
+      })
+      // 上传成功后刷新列表
+      await fetchCveList()
+      uploadDialog.value = false
+      uploadFiles.value = []
+    }
+  } catch (error) {
+    console.error('文件上传失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '文件上传失败',
+      type: 'error'
+    })
+  } finally {
+    uploading.value = false
   }
 }
 

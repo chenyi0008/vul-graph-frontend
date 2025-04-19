@@ -92,3 +92,19 @@ export interface Country {
   nameEn: string
   nameZh: string
 }
+
+// 文件上传接口
+export interface UploadFileResponse extends BaseResponse<null> {}
+
+export const uploadCveFiles = (files: File[]): Promise<UploadFileResponse> => {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+  
+  return request.post<UploadFileResponse>('/cve/upload-file', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}
