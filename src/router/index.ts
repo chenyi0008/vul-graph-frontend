@@ -38,7 +38,7 @@ router.beforeEach((to, from, next) => {
 
   // 如果路由需要认证且没有token，重定向到登录页
   if (to.meta.requiresAuth && !token) {
-    next('/login')
+    // next('/login')
   } 
   // 如果已经登录且访问登录或注册页，重定向到系统页
   else if (token && (to.path === '/login' || to.path === '/register')) {

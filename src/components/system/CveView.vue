@@ -84,7 +84,7 @@
           <v-data-table
             :headers="cveHeaders"
             :items="cveList"
-            :items-per-page="5"
+            :items-per-page="-1"
             :loading="loading"
             class="elevation-1"
           >
@@ -106,7 +106,7 @@
                 color="primary"
                 @click="showCveDetails(item)"
               >
-              查看详情
+                详情
               </v-btn>
               <v-btn
                 size="small"
@@ -139,6 +139,14 @@
                 @click="showBindCountryDialog(item)"
               >
                 绑定国家
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="info"
+                @click="showChatDialog(item)"
+              >
+                智慧问答
               </v-btn>
               <v-btn
                 size="small"
@@ -710,11 +718,60 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 智慧问答对话框 -->
+    <v-dialog v-model="chatDialog" max-width="800">
+      <v-card>
+        <v-card-title class="text-h5 d-flex justify-space-between align-center">
+          <span>智慧问答 - {{ selectedCveForChat?.cveId }}</span>
+          <v-btn icon @click="chatDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text>
+          <div class="chat-container" ref="chatContainer">
+            <div v-for="(message, index) in chatMessages" :key="index" class="message-container">
+              <div :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
+                <div class="message-content">{{ message.content }}</div>
+              </div>
+            </div>
+            <div v-if="chatLoading" class="message-container">
+              <div class="message assistant-message">
+                <div class="message-content">
+                  <v-progress-circular indeterminate size="20" width="2"></v-progress-circular>
+                  <span class="ml-2">正在思考...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions class="pa-4">
+          <v-text-field
+            v-model="chatQuestion"
+            label="输入您的问题"
+            @keyup.enter="sendChatQuestion"
+            :disabled="chatLoading"
+            hide-details
+            density="compact"
+            variant="outlined"
+            class="mr-2"
+          ></v-text-field>
+          <v-btn
+            color="primary"
+            @click="sendChatQuestion"
+            :loading="chatLoading"
+            :disabled="!chatQuestion || chatLoading"
+          >
+            发送
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { getCveList, createCve, updateCve, getCveById, deleteCve, bindSoftware, bindSystem, bindCountry, getCountryList, uploadCveFiles } from '@/api/cve'
 import type { CveItem, Country } from '@/api/cve'
 import { useUserStore } from '@/stores/user'
@@ -724,6 +781,7 @@ import { getSystemList } from '@/api/system'
 import type { SystemNode } from '@/api/system'
 import { useNotification } from '@kyvg/vue3-notification'
 import CveGraph from '@/components/neo4j/CveGraph.vue'
+import { sendChatMessage } from '@/api/chat'
 
 const notification = useNotification()
 const userStore = useUserStore()
@@ -1419,6 +1477,83 @@ const handleUpload = async () => {
   }
 }
 
+// 智慧问答相关
+const chatDialog = ref(false)
+const selectedCveForChat = ref<CveItem | null>(null)
+const chatQuestion = ref('')
+const chatMessages = ref<{role: string, content: string}[]>([])
+const chatLoading = ref(false)
+const chatContainer = ref<HTMLElement | null>(null)
+const currentSessionId = ref<string>('')
+
+// 生成会话ID
+const generateSessionId = () => {
+  const userId = localStorage.getItem('userId') || 'anonymous'
+  const timestamp = Date.now()
+  return `${userId}_${timestamp}`
+}
+
+// 显示智慧问答对话框
+const showChatDialog = (cve: CveItem) => {
+  selectedCveForChat.value = cve
+  chatQuestion.value = ''
+  chatMessages.value = []
+  currentSessionId.value = generateSessionId()
+  chatDialog.value = true
+}
+
+// 发送问题
+const sendChatQuestion = async () => {
+  if (!chatQuestion.value || !selectedCveForChat.value || chatLoading.value) return
+  
+  const question = chatQuestion.value
+  chatQuestion.value = ''
+  
+  // 添加用户消息
+  chatMessages.value.push({
+    role: 'user',
+    content: question
+  })
+  
+  try {
+    chatLoading.value = true
+    const response = await sendChatMessage({
+      question,
+      cveId: selectedCveForChat.value.cveId,
+      sessionId: currentSessionId.value
+    })
+    
+    if (response.code === 1) {
+      // 添加助手消息
+      chatMessages.value.push({
+        role: 'assistant',
+        content: response.msg
+      })
+    }
+  } catch (error) {
+    console.error('发送消息失败:', error)
+  } finally {
+    chatLoading.value = false
+    // 滚动到底部
+    setTimeout(() => {
+      if (chatContainer.value) {
+        chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+      }
+    }, 100)
+  }
+}
+
+// 监听对话框打开，自动滚动到底部
+watch(chatDialog, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      if (chatContainer.value) {
+        chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+      }
+    })
+  }
+})
+
 // 组件挂载时获取数据
 onMounted(async () => {
   // 初始化时加载所有CVE数据
@@ -1518,5 +1653,42 @@ onMounted(async () => {
 
 .v-list-item:hover {
   background-color: rgba(0, 0, 0, 0.04);
+}
+
+.chat-container {
+  height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-container {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  max-width: 80%;
+  padding: 10px 15px;
+  border-radius: 10px;
+  word-break: break-word;
+}
+
+.user-message {
+  align-self: flex-end;
+  background-color: #e3f2fd;
+  color: #0d47a1;
+}
+
+.assistant-message {
+  align-self: flex-start;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.message-content {
+  white-space: pre-wrap;
 }
 </style> 

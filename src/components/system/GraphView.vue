@@ -2,7 +2,6 @@
   <div class="settings-container">
     <v-card elevation="2">
       <Graph style=" height: auto;"></Graph>
-      <!-- <CveGraph cveId="222" /> -->
     </v-card>
   </div>
 </template>
