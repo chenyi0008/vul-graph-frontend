@@ -6,6 +6,7 @@
         <v-btn
           color="primary"
           @click="showCreateDialog"
+          v-role="['admin']"
         >
           添加系统节点
         </v-btn>
@@ -31,6 +32,7 @@
             variant="text"
             color="warning"
             @click="showEditDialog(item)"
+            v-role="['admin']"
           >
             编辑
           </v-btn>
@@ -39,6 +41,7 @@
             variant="text"
             color="error"
             @click="handleDelete(item)"
+            v-role="['admin']"
           >
             删除
           </v-btn>

@@ -32,12 +32,14 @@
                 color="info"
                 class="mr-2"
                 @click="showUploadDialog"
+                v-role="['admin']"
               >
                 批量上传
               </v-btn>
               <v-btn
                 color="primary"
                 @click="showCreateDialog"
+                v-role="['admin']"
               >
                 添加CVE
               </v-btn>
@@ -113,6 +115,7 @@
                 variant="text"
                 color="warning"
                 @click="showEditDialog(item)"
+                v-role="['admin']"
               >
                 编辑信息
               </v-btn>
@@ -121,6 +124,7 @@
                 variant="text"
                 color="info"
                 @click="showBindDialog(item)"
+                v-role="['admin']"
               >
                 绑定软件
               </v-btn>
@@ -129,6 +133,7 @@
                 variant="text"
                 color="info"
                 @click="showBindSystemDialog(item)"
+                v-role="['admin']"
               >
                 绑定系统
               </v-btn>
@@ -137,6 +142,7 @@
                 variant="text"
                 color="info"
                 @click="showBindCountryDialog(item)"
+                v-role="['admin']"
               >
                 绑定国家
               </v-btn>
@@ -153,6 +159,7 @@
                 variant="text"
                 color="error"
                 @click="handleDelete(item)"
+                v-role="['admin']"
               >
                 删除信息
               </v-btn>
@@ -1022,13 +1029,28 @@ const fetchCveList = async (params = {}) => {
 }
 
 // 显示绑定软件对话框
-const showBindDialog = (cve: CveItem) => {
-  selectedCveForBind.value = cve
-  // 初始化未绑定和已绑定的软件列表
-  const boundIds = cve.softwareList?.map(s => s.id) || []
-  boundSoftware.value = cve.softwareList || []
-  unboundSoftware.value = softwareList.value?.filter(s => !boundIds.includes(s.id)) || []
-  bindDialog.value = true
+const showBindDialog = async (cve: CveItem) => {
+  try {
+    loading.value = true
+    const response = await getCveById(cve.cveId)
+    if (response.code === 1) {
+      selectedCveForBind.value = response.data
+      // 初始化未绑定和已绑定的软件列表
+      const boundIds = response.data.softwareList?.map(s => s.id) || []
+      boundSoftware.value = response.data.softwareList || []
+      unboundSoftware.value = softwareList.value?.filter(s => !boundIds.includes(s.id)) || []
+      bindDialog.value = true
+    }
+  } catch (error) {
+    console.error('获取CVE详情失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE详情失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
 }
 
 // 计算可用的软件列表(排除已绑定的)
@@ -1153,13 +1175,28 @@ const fetchSoftwareList = async () => {
 }
 
 // 显示绑定系统节点对话框
-const showBindSystemDialog = (cve: CveItem) => {
-  selectedCveForSystemBind.value = cve
-  // 初始化未绑定和已绑定的系统节点列表
-  const boundIds = cve.systemList?.map(s => s.id) || []
-  boundSystems.value = cve.systemList || []
-  unboundSystems.value = systemList.value?.filter(s => !boundIds.includes(s.id)) || []
-  bindSystemDialog.value = true
+const showBindSystemDialog = async (cve: CveItem) => {
+  try {
+    loading.value = true
+    const response = await getCveById(cve.cveId)
+    if (response.code === 1) {
+      selectedCveForSystemBind.value = response.data
+      // 初始化未绑定和已绑定的系统节点列表
+      const boundIds = response.data.systemList?.map(s => s.id) || []
+      boundSystems.value = response.data.systemList || []
+      unboundSystems.value = systemList.value?.filter(s => !boundIds.includes(s.id)) || []
+      bindSystemDialog.value = true
+    }
+  } catch (error) {
+    console.error('获取CVE详情失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE详情失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
 }
 
 // 计算可用的系统节点列表(排除已绑定的)
@@ -1222,10 +1259,25 @@ const fetchSystemList = async () => {
 }
 
 // 显示绑定国家对话框
-const showBindCountryDialog = (cve: CveItem) => {
-  selectedCveForCountryBind.value = cve
-  selectedCountry.value = cve.country || null
-  bindCountryDialog.value = true
+const showBindCountryDialog = async (cve: CveItem) => {
+  try {
+    loading.value = true
+    const response = await getCveById(cve.cveId)
+    if (response.code === 1) {
+      selectedCveForCountryBind.value = response.data
+      selectedCountry.value = response.data.country || null
+      bindCountryDialog.value = true
+    }
+  } catch (error) {
+    console.error('获取CVE详情失败:', error)
+    notification.notify({
+      title: '错误',
+      text: '获取CVE详情失败',
+      type: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
 }
 
 // 获取国家列表
@@ -1500,6 +1552,12 @@ const showChatDialog = (cve: CveItem) => {
   chatMessages.value = []
   currentSessionId.value = generateSessionId()
   chatDialog.value = true
+  
+  // 添加欢迎语
+  chatMessages.value.push({
+    role: 'assistant',
+    content: `您好！我是您的CVE漏洞分析助手。我可以帮您分析关于 ${cve.cveId} 的任何问题，包括漏洞详情、影响范围、解决方案等。请问有什么我可以帮您的吗？`
+  })
 }
 
 // 发送问题

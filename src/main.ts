@@ -9,6 +9,9 @@ import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
 import Notifications from '@kyvg/vue3-notification'
 import router from './router'
+import vRole from './directives/v-role'
+
+
 
 const vuetify = createVuetify({
   components,
@@ -20,5 +23,5 @@ app.use(vuetify)
 app.use(router)
 app.use(createPinia())
 app.use(Notifications)
-
+app.directive('role', vRole)
 app.mount('#app')
