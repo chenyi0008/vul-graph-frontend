@@ -232,12 +232,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,reactive } from 'vue'
 import { getSystemList, createSystem, updateSystem, deleteSystem } from '@/api/system'
 import type { SystemNode } from '@/api/system'
 
+interface systemHeader {
+  title: string
+  key: string
+  sortable: boolean
+}
+
 // 系统节点数据
-const systemHeaders = ref([
+const systemHeaders = ref<systemHeader[]>([
   { title: '系统名称', key: 'systemName', sortable: true },
   { title: '等级', key: 'level', sortable: true },
   { title: '厂商', key: 'vendor', sortable: true },

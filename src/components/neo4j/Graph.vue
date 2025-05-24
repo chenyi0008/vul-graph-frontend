@@ -53,8 +53,8 @@ import * as d3 from 'd3'
 
 const graphRef = ref<HTMLElement | null>(null)
 const driver = neo4j.driver(
-//   'bolt://localhost:7687',
-  'bolt://10.33.58.130:7687',
+  'bolt://localhost:7687',
+  // 'bolt://10.33.58.130:7687',
   neo4j.auth.basic('reader', 'reader890')
 )
 
@@ -89,7 +89,8 @@ const fetchData = async () => {
       OPTIONAL MATCH (cve)-[r1]->(s:Software)
       OPTIONAL MATCH (cve)-[r2]->(sys:System)
       OPTIONAL MATCH (country:Country)-[r3]->(cve)
-      RETURN cve, r1, s, r2, sys, r3, country
+      OPTIONAL MATCH (year:Year)-[r4]->(cve)
+      RETURN cve, r1, s, r2, sys, r3, country, r4, year
     `)
 
     const nodeMap = new Map<string, Node>()
@@ -100,9 +101,11 @@ const fetchData = async () => {
       const software = record.get('s')
       const system = record.get('sys')
       const country = record.get('country')
+      const year = record.get('year')
       const rel1 = record.get('r1')
       const rel2 = record.get('r2')
       const rel3 = record.get('r3')
+      const rel4 = record.get('r4')
 
       if (cve) {
         nodeMap.set(cve.identity.toString(), {
@@ -133,6 +136,14 @@ const fetchData = async () => {
           id: country.identity.toString(),
           labels: country.labels,
           properties: country.properties
+        })
+      }
+
+      if (year) {
+        nodeMap.set(year.identity.toString(), {
+          id: year.identity.toString(),
+          labels: year.labels,
+          properties: year.properties
         })
       }
 
@@ -170,6 +181,19 @@ const fetchData = async () => {
             target: rel3.end.toString(),
             type: rel3.type,
             properties: rel3.properties
+          })
+          linkSet.add(linkId)
+        }
+      }
+
+      if (rel4) {
+        const linkId = `${rel4.start.toString()}-${rel4.end.toString()}`
+        if (!linkSet.has(linkId)) {
+          links.value.push({
+            source: rel4.start.toString(),
+            target: rel4.end.toString(),
+            type: rel4.type,
+            properties: rel4.properties
           })
           linkSet.add(linkId)
         }
@@ -276,6 +300,7 @@ const drawGraph = () => {
       if (d.labels.includes('CVE')) return '#ff6b6b'
       if (d.labels.includes('Software')) return '#4ecdc4'
       if (d.labels.includes('Country')) return '#e7b04f'
+      if (d.labels.includes('Year')) return '#a0a0a0'
       return '#45b7d1'
     })
     .style('cursor', 'pointer')
@@ -339,6 +364,7 @@ const drawGraph = () => {
       if (d.labels.includes('CVE')) return d.properties.cveId
       if (d.labels.includes('Software')) return d.properties.名称
       if (d.labels.includes('Country')) return d.properties.中文名
+      if (d.labels.includes('Year')) return d.properties.名称
       return d.properties.系统名称
     })
     .attr('font-size', 12)
